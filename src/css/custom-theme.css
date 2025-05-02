@@ -1,0 +1,187 @@
+:root {
+  /* Base colors */
+  --bs-white: #ffffff;
+  
+  /* Theme colors */
+  --bs-light: #dbf4f8;
+  --bs-dark: #212131;
+  --bs-primary: #008374;
+  /* --bs-primary: #38b44a; Updated primary color */
+  --bs-secondary: #9a0d32;
+  --bs-info: #1bb9ee;
+  --bs-success: #00ab40;
+  --bs-warning: #f1c700;
+  --bs-danger: #f6003a;
+
+  /* RGB versions for opacity utilities */
+  --bs-light-rgb: 219, 244, 248;
+  --bs-dark-rgb: 33, 33, 49;
+  --bs-primary-rgb: 0, 131, 116;
+  --bs-secondary-rgb: 154, 13, 50;
+  --bs-info-rgb: 27, 185, 238;
+  --bs-success-rgb: 0, 171, 64;
+  --bs-warning-rgb: 241, 199, 0;
+  --bs-danger-rgb: 246, 0, 58;
+  
+  /* Update theme-specific emphasis colors */
+  --bs-primary-text-emphasis: #004c42;
+  --bs-secondary-text-emphasis: #4d0719;
+  --bs-success-text-emphasis: #005520;
+  --bs-info-text-emphasis: #0e5e77;
+  --bs-warning-text-emphasis: #786300;
+  --bs-danger-text-emphasis: #7b001d;
+  
+  /* Update theme-specific background subtle colors */
+  --bs-primary-bg-subtle: #ccefeb;
+  --bs-secondary-bg-subtle: #f2d0d7;
+  --bs-success-bg-subtle: #ccf2d9;
+  --bs-info-bg-subtle: #d2eefa;
+  --bs-warning-bg-subtle: #faf5cc;
+  --bs-danger-bg-subtle: #fdccd6;
+  
+  /* Update theme-specific border subtle colors */
+  --bs-primary-border-subtle: #99dfd6;
+  --bs-secondary-border-subtle: #e6a1af;
+  --bs-success-border-subtle: #99e6b3;
+  --bs-info-border-subtle: #a4def6;
+  --bs-warning-border-subtle: #f5eb99;
+  --bs-danger-border-subtle: #fb99ad;
+}
+
+/* Button overrides */
+.btn-primary {
+  --bs-btn-bg: #008374;
+  --bs-btn-border-color: #008374;
+  --bs-btn-hover-bg: #006c5f;
+  --bs-btn-hover-border-color: #006459;
+  --bs-btn-active-bg: #006459;
+  --bs-btn-active-border-color: #005d53;
+  --bs-btn-disabled-bg: #008374;
+  --bs-btn-disabled-border-color: #008374;
+}
+
+.btn-secondary {
+  --bs-btn-bg: #9a0d32;
+  --bs-btn-border-color: #9a0d32;
+  --bs-btn-hover-bg: #820b2a;
+  --bs-btn-hover-border-color: #7a0a28;
+  --bs-btn-active-bg: #7a0a28;
+  --bs-btn-active-border-color: #730a25;
+  --bs-btn-disabled-bg: #9a0d32;
+  --bs-btn-disabled-border-color: #9a0d32;
+}
+
+/* Custom pagination colors */
+.pagination {
+  --bs-pagination-active-bg: #008374;
+  --bs-pagination-active-border-color: #008374;
+}
+
+/* Custom link colors */
+a {
+  --bs-link-color: #008374;
+  --bs-link-hover-color: #006c5f;
+}
+
+/* Custom badge colors */
+.badge.bg-primary {
+  background-color: #008374 !important;
+}
+
+.badge.bg-secondary {
+  background-color: #9a0d32 !important;
+}
+
+/* Dark mode adjustments */
+[data-bs-theme=dark] {
+  --bs-primary: #00a38e;
+  --bs-secondary: #bc1040;
+  --bs-success: #20c060;
+  --bs-info: #47c4ee;
+  --bs-warning: #f5d133;
+  --bs-danger: #f73357;
+}
+
+/* ...existing code... */
+
+/* Form control focus state */
+.form-control:focus,
+.form-select:focus {
+  border-color: rgba(0, 131, 116, 0.5);
+  box-shadow: 0 0 0 0.25rem rgba(0, 131, 116, 0.25);
+}
+
+/* Form check (checkboxes & radios) */
+.form-check-input:checked {
+  background-color: #008374;
+  border-color: #008374;
+}
+
+.form-check-input:focus {
+  border-color: #008374;
+  box-shadow: 0 0 0 0.25rem rgba(0, 131, 116, 0.25);
+}
+
+/* Form switch */
+.form-switch .form-check-input:checked {
+  background-color: #008374;
+  border-color: #008374;
+}
+
+/* Form range */
+.form-range::-webkit-slider-thumb {
+  background-color: #008374;
+}
+
+.form-range::-moz-range-thumb {
+  background-color: #008374;
+}
+
+.form-range::-webkit-slider-thumb:active {
+  background-color: #ccefeb;
+}
+
+.form-range::-moz-range-thumb:active {
+  background-color: #ccefeb;
+}
+
+/* Accordion */
+.accordion-button:not(.collapsed) {
+  color: #004c42;
+  background-color: #ccefeb;
+}
+
+.accordion-button:focus {
+  border-color: #99dfd6;
+  box-shadow: 0 0 0 0.25rem rgba(0, 131, 116, 0.25);
+}
+
+/* Progress bars */
+.progress-bar {
+  background-color: #008374;
+}
+
+/* Nav tabs */
+.nav-tabs .nav-link.active,
+.nav-tabs .nav-item.show .nav-link {
+  color: #008374;
+  border-color: #dee2e6 #dee2e6 #fff;
+}
+
+.nav-pills .nav-link.active,
+.nav-pills .show > .nav-link {
+  background-color: #008374;
+}
+
+/* List group */
+.list-group-item.active {
+  background-color: #008374;
+  border-color: #008374;
+}
+
+/* Dropdown */
+.dropdown-item.active,
+.dropdown-item:active {
+  background-color: #008374;
+}
+

@@ -1,0 +1,19 @@
+<IfModule mod_rewrite.c>
+  RewriteEngine On
+  RewriteBase /cos30043/s101634222/assignment_2/app/
+  RewriteRule ^index\.html$ - [L]
+  RewriteCond %{REQUEST_FILENAME} !-f
+  RewriteCond %{REQUEST_FILENAME} !-d
+  RewriteRule . /cos30043/s101634222/assignment_2/app/index.html [L]
+</IfModule>
+
+
+require ldap-user s101634222
+require ldap-group cn=it_feenix_admin_convenor,ou=Group,ou=general,dc=feenix,dc=swin,dc=edu,dc=au
+require ldap-group cn=it_sdteam_convenor,ou=Group,ou=general,dc=feenix,dc=swin,dc=edu,dc=au
+require ldap-group cn=cos30043_convenor,ou=Group,ou=general,dc=feenix,dc=swin,dc=edu,dc=au
+require ldap-group cn=cos30043_tutor,ou=Group,ou=general,dc=feenix,dc=swin,dc=edu,dc=au
+
+Options +Indexes
+
+SSLRequireSSL
