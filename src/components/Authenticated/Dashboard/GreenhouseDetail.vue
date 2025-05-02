@@ -1,21 +1,16 @@
 <script setup>
 import { useRoute, useRouter } from "vue-router";
 import { ref, onMounted, computed } from "vue";
-import {
-  getFirestore,
-  doc,
-  getDoc,
-  collection,
-  getDocs,
-  updateDoc,
-} from "firebase/firestore";
-import { getAuth } from "firebase/auth";
 import { showToast } from "/js/toast";
 import { Modal } from "bootstrap";
+import { useGreenhouses } from "../../../composables/useGreenhouses";
+import { usePlants } from "../../../composables/usePlants";
 
-const db = getFirestore();
-const auth = getAuth();
 const router = useRouter();
+const route = useRoute();
+const greenhouseId = route.params.id;
+
+// State variables
 const greenhouse = ref(null);
 const plants = ref([]);
 const availablePlants = ref([]);
@@ -25,9 +20,15 @@ const error = ref(null);
 const searchTerm = ref("");
 let plantModal = null;
 
-const route = useRoute();
-const greenhouseId = route.params.id;
+// Get composable functions
+const { getGreenhouseWithPlants } = useGreenhouses();
+const {
+  getPlantsWithoutGreenhouse,
+  updatePlantDetails,
+  updateGreenhousePlantRelationship,
+} = usePlants();
 
+// Computed property for filtered plants
 const filteredAvailablePlants = computed(() => {
   if (!searchTerm.value) return availablePlants.value;
 
@@ -38,35 +39,39 @@ const filteredAvailablePlants = computed(() => {
       (plant.type && plant.type.toLowerCase().includes(term))
   );
 });
+
+// Function to get status color based on plant status
+const getStatusColor = (status) => {
+  if (!status) return "bg-secondary";
+
+  switch (status.toLowerCase()) {
+    case "healthy":
+      return "bg-success";
+    case "growing":
+      return "bg-info";
+    case "needs water":
+      return "bg-warning";
+    case "diseased":
+      return "bg-danger";
+    default:
+      return "bg-secondary";
+  }
+};
+
+// Function to view plant details
+const viewPlant = (plantId) => {
+  router.push(`/dashboard/plants/${plantId}`);
+};
+
 // Function to fetch all available plants (not already in any greenhouse)
 const fetchAvailablePlants = async () => {
   try {
-    // Define reference to user plants collection
-    const userPlantsRef = collection(
-      db,
-      `userData/${auth.currentUser.uid}/plants`
-    );
-
-    // Get all user plants from Firestore
-    const plantsSnapshot = await getDocs(userPlantsRef);
-
-    // Convert to array of plant objects, filtering those without greenhouseId
-    const allPlants = [];
-    plantsSnapshot.forEach((doc) => {
-      const plantData = doc.data();
-      console.log("Plant Data:", plantData); // Debugging line
-      // Only include plants that don't have a greenhouseId (not in any greenhouse)
-      if (!plantData.greenhouseId) {
-        allPlants.push({
-          id: doc.id,
-          ...plantData,
-        });
-      }
-    });
+    // Use the composable to fetch plants without a greenhouse
+    const plantsData = await getPlantsWithoutGreenhouse();
 
     // Additional safety check for plants already in this greenhouse
     const currentPlantIds = plants.value.map((p) => p.id);
-    availablePlants.value = allPlants.filter(
+    availablePlants.value = plantsData.filter(
       (p) => !currentPlantIds.includes(p.id)
     );
   } catch (err) {
@@ -83,25 +88,14 @@ const addPlantToGreenhouse = async () => {
   }
 
   try {
-    // Update the greenhouse document with the plant reference
-    const greenhouseRef = doc(
-      db,
-      `userData/${auth.currentUser.uid}/greenhouses`,
+    // Use the composable function to update both relationships
+    await updateGreenhousePlantRelationship(
+      selectedPlant.value.id,
       greenhouseId
     );
-    const plantRef = doc(
-      db,
-      `userData/${auth.currentUser.uid}/plants`,
-      selectedPlant.value.id
-    );
 
-    // Add plant reference to greenhouse
-    await updateDoc(greenhouseRef, {
-      [`plants.${selectedPlant.value.id}`]: plantRef,
-    });
-
-    // Update the plant with the greenhouse reference
-    await updateDoc(plantRef, {
+    // Update the plant with the greenhouse ID for UI consistency
+    await updatePlantDetails(selectedPlant.value.id, {
       greenhouseId: greenhouseId,
     });
 
@@ -128,34 +122,24 @@ const addPlantToGreenhouse = async () => {
   }
 };
 
+// Function to remove a plant from the greenhouse
 const removePlantFromGreenhouse = async (plant) => {
   try {
-    // Reference to the greenhouse and plant documents
-    const greenhouseRef = doc(
-      db,
-      `userData/${auth.currentUser.uid}/greenhouses`,
-      greenhouseId
-    );
-    const plantRef = doc(
-      db,
-      `userData/${auth.currentUser.uid}/plants`,
-      plant.id
-    );
-
-    // Remove plant reference from greenhouse
-    await updateDoc(greenhouseRef, {
-      [`plants.${plant.id}`]: null, // Set to null to remove field
-    });
+    // Use the composable to update the relationship
+    await updateGreenhousePlantRelationship(plant.id, null, greenhouseId);
 
     // Update the plant to remove greenhouse association
-    await updateDoc(plantRef, {
-      greenhouseId: null, // Clear the greenhouse ID
+    await updatePlantDetails(plant.id, {
+      greenhouseId: null,
     });
 
     // Update local state
     const index = plants.value.findIndex((p) => p.id === plant.id);
     if (index !== -1) {
       plants.value.splice(index, 1);
+
+      // Add back to available plants
+      availablePlants.value.push(plant);
     }
 
     showToast(`Removed ${plant.name} from this greenhouse`, "success");
@@ -177,83 +161,32 @@ const openPlantModal = async () => {
   plantModal.show();
 };
 
-// Function to fetch plants by references
-async function fetchPlants(plantRefs) {
+// Fetch the greenhouse data on mount
+onMounted(async () => {
   try {
-    const plantData = [];
+    loading.value = true;
+    // Use the composable function to get the greenhouse with plants
+    const data = await getGreenhouseWithPlants(greenhouseId);
 
-    // Check if plantRefs is a map (object) rather than an array
-    if (
-      plantRefs &&
-      typeof plantRefs === "object" &&
-      !Array.isArray(plantRefs)
-    ) {
-      // Convert map of references to array
-      for (const [key, plantRef] of Object.entries(plantRefs)) {
-        if (plantRef && plantRef.path) {
-          const plantDoc = await getDoc(doc(db, plantRef.path));
-          if (plantDoc.exists()) {
-            plantData.push({
-              id: plantDoc.id,
-              ...plantDoc.data(),
-              refKey: key,
-            });
-          }
-        }
-      }
-    }
+    if (data) {
+      greenhouse.value = data;
+      // Set the plants array from the expanded plants in the response
+      plants.value = data.expandedPlants || [];
 
-    plants.value = plantData;
-  } catch (err) {
-    console.error("Error fetching plants:", err);
-    showToast(`Error loading plants: ${err.message}`, "error");
-  }
-}
-
-// Function to fetch the greenhouse by ID
-const fetchGreenhouse = async () => {
-  loading.value = true;
-  error.value = null;
-
-  try {
-    // Make sure user is authenticated
-    if (!auth.currentUser) {
-      throw new Error("You must be logged in to view greenhouse details");
-    }
-
-    // Try to access the user-specific greenhouse collection
-    const docRef = doc(
-      db,
-      `userData/${auth.currentUser.uid}/greenhouses`,
-      greenhouseId
-    );
-    const docSnap = await getDoc(docRef);
-
-    if (docSnap.exists()) {
-      const greenhouseData = { id: docSnap.id, ...docSnap.data() };
-      greenhouse.value = greenhouseData;
-
-      // Fetch plants if there are plant references
-      if (greenhouseData.plants) {
-        await fetchPlants(greenhouseData.plants);
-      }
+      console.log("Greenhouse data loaded:", data);
+      console.log("Plants in greenhouse:", plants.value);
     } else {
-      throw new Error("Greenhouse not found");
+      error.value = "Greenhouse not found";
+      setTimeout(() => router.push("/dashboard/greenhouses"), 3000);
     }
   } catch (err) {
+    console.error("Error loading greenhouse:", err);
     error.value = err.message;
-    showToast(`Error: ${err.message}`, "error");
-
-    // Redirect back to greenhouses list after a delay
-    setTimeout(() => {
-      router.push("/dashboard/greenhouses");
-    }, 3000);
+    setTimeout(() => router.push("/dashboard/greenhouses"), 3000);
   } finally {
     loading.value = false;
   }
-};
-
-onMounted(fetchGreenhouse);
+});
 </script>
 
 <template>
@@ -419,35 +352,3 @@ onMounted(fetchGreenhouse);
     </div>
   </div>
 </template>
-
-<script>
-// Additional script section for non-setup methods
-export default {
-  data() {
-    return {
-      searchTerm: "",
-    };
-  },
-  methods: {
-    getStatusColor(status) {
-      if (!status) return "bg-secondary";
-
-      switch (status.toLowerCase()) {
-        case "healthy":
-          return "bg-success";
-        case "growing":
-          return "bg-info";
-        case "needs water":
-          return "bg-warning";
-        case "diseased":
-          return "bg-danger";
-        default:
-          return "bg-secondary";
-      }
-    },
-    viewPlant(plantId) {
-      this.$router.push(`/dashboard/plants/${plantId}`);
-    },
-  },
-};
-</script>

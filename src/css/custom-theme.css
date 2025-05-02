@@ -185,3 +185,73 @@ a {
   background-color: #008374;
 }
 
+/* Dashboard cards */
+.icon-circle {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 60px;
+  height: 60px;
+  border-radius: 50%;
+}
+
+.icon-circle i {
+  font-size: 25px;
+}
+
+.hover-card {
+  transition: transform 0.3s ease;
+}
+
+.hover-card:hover {
+  transform: translateY(-5px);
+}
+
+.weather-display {
+  margin: 15px 0;
+}
+
+/* Plants */
+.status-indicator {
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: white;
+  font-size: 0.8rem;
+}
+
+.plant-status {
+  display: flex;
+  align-items: center;
+}
+
+.notes-container {
+  position: relative;
+  padding: 8px;
+  border: 1px dashed transparent;
+  border-radius: 4px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.notes-container:hover {
+  border-color: #dee2e654;
+  background-color: #f8f9fa23;
+}
+
+.edit-overlay {
+  position: absolute;
+  top: 0;
+  right: 0;
+  padding: 4px;
+  opacity: 0;
+  transition: opacity 0.2s ease;
+}
+
+.notes-container:hover .edit-overlay {
+  opacity: 0.7;
+}
+

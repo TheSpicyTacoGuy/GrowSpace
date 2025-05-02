@@ -14,5 +14,28 @@ import router from "./router";
 //load the Vue app
 import { createApp } from "vue";
 import App from "../App.vue";
+import { Tooltip } from "bootstrap";
 
-createApp(App).use(router).mount("#app");
+//Inintialise Tooltips
+  const tooltipTriggerList = document.querySelectorAll(
+    '[data-bs-toggle="tooltip"]'
+  );
+  [...tooltipTriggerList].map(
+    (tooltipTriggerEl) => new Tooltip(tooltipTriggerEl)
+  );
+
+  const app = createApp(App);
+
+  app.directive("tooltip", {
+    mounted(el) {
+        new Tooltip(el);
+    },
+    unmounted(el) {
+        const tooltip = Tooltip.getInstance(el);
+        if (tooltip) {
+            tooltip.dispose();
+        }
+    },
+  });
+
+app.use(router).mount("#app");

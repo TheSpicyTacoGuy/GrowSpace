@@ -1,6 +1,4 @@
 <script setup>
-import { onMounted } from "vue";
-import { Tooltip } from "bootstrap";
 import { useRouter } from "vue-router";
 import IconDash from "../../icons/IconDash.vue";
 import IconHouses from "../../icons/IconHouses.vue";
@@ -35,15 +33,6 @@ function navigateTo(routeName) {
     router.push(`/dashboard/${routeName}`);
   }
 }
-
-onMounted(() => {
-  const tooltipTriggerList = document.querySelectorAll(
-    '[data-bs-toggle="tooltip"]'
-  );
-  [...tooltipTriggerList].map(
-    (tooltipTriggerEl) => new Tooltip(tooltipTriggerEl)
-  );
-});
 </script>
 <template>
   <div class="dashboard container-fluid">
@@ -172,11 +161,8 @@ onMounted(() => {
                 class="btn"
                 :class="isActive('dashboard')"
                 @click.prevent="navigateTo('dashboard')"
-                data-bs-toggle="tooltip"
-                data-bs-placement="top"
+                v-tooltip
                 title="Dashboard"
-                tooltip="Dashboard"
-                tooltip-placement="top"
               >
                 <IconDash />
                 <span
@@ -188,10 +174,8 @@ onMounted(() => {
                 class="btn"
                 :class="isActive('greenhouses')"
                 @click.prevent="navigateTo('greenhouses')"
-                data-bs-toggle="tooltip"
-                data-bs-placement="top"
+                v-tooltip
                 title="Greenhouses"
-                tooltip="Greenhouses"
               >
                 <IconHouses />
                 <span
@@ -203,10 +187,8 @@ onMounted(() => {
                 class="btn text-body"
                 :class="isActive('plants')"
                 @click.prevent="navigateTo('plants')"
-                data-bs-toggle="tooltip"
-                data-bs-placement="top"
+                v-tooltip
                 title="Plants"
-                tooltip="Plants"
               >
                 <IconSeedling />
                 <span
@@ -218,10 +200,8 @@ onMounted(() => {
                 class="btn text-body"
                 :class="isActive('settings')"
                 @click.prevent="navigateTo('settings')"
-                data-bs-toggle="tooltip"
-                data-bs-placement="top"
+                v-tooltip
                 title="Settings"
-                tooltip="Settings"
               >
                 <IconSettings />
                 <span
