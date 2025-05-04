@@ -48,7 +48,7 @@ defineOptions({
       {{ error }}
     </div>
 
-    <div v-else class="row mt-4">
+    <div v-else class="row mt-4 d-flex justify-content-center">
       <!-- Greenhouse Count Card -->
       <div class="col-md-6 mb-4">
         <router-link to="/dashboard/greenhouses" class="text-decoration-none">
@@ -78,7 +78,7 @@ defineOptions({
       </div>
 
       <!-- Weather Card -->
-      <div class="col-md-4 mb-4">
+      <div class="col-md-12 mb-4">
         <WeatherCard :weather="weather" />
       </div>
     </div>

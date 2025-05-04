@@ -6,6 +6,7 @@ import {
 } from "firebase/auth";
 
 import { showToast } from "../toast";
+import router from "../router";
 
 const auth = getAuth(); // Get Firebase Authentication
 
@@ -14,6 +15,8 @@ async function login() {
   try {
     const provider = new GoogleAuthProvider();
     await signInWithPopup(auth, provider);
+    //Redirect to Dashboard
+    router.push("/dashboard");
     showToast("Login successful, welcome!", "success");
   } catch (error) {
     console.error("Authentication error:", error);
@@ -32,6 +35,8 @@ async function login() {
 async function logout() {
   try {
     await signOut(auth);
+    //Redirect to Home
+    router.push("/home");
     showToast("Logout successful, until next time!", "success");
   } catch (error) {
     console.error("Sign out error:", error);
