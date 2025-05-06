@@ -88,12 +88,11 @@ function navigateTo(routeName) {
                     :class="isActive('dashboard')"
                     href="#"
                     @click.prevent="navigateTo('dashboard')"
-                    ><IconDash class="mx-2" />Dashboard</a
+                    ><IconDash
+                      class="mx-2"
+                      :class="{ 'text-primary': checkActiveRoute('dashboard') }"
+                    />Dashboard</a
                   >
-                  <span
-                    class="position-relative d-block border-bottom border-2 bottom-0 w-100 border-primary"
-                    v-if="isActive('dashboard')"
-                  ></span>
                 </li>
                 <li class="nav-item w-100 d-block overflow-hidden">
                   <a
@@ -101,12 +100,13 @@ function navigateTo(routeName) {
                     :class="isActive('greenhouses')"
                     href="#"
                     @click.prevent="navigateTo('greenhouses')"
-                    ><IconHouses class="mx-2" />Greenhouses</a
+                    ><IconHouses
+                      class="mx-2"
+                      :class="{
+                        'text-primary': checkActiveRoute('greenhouses'),
+                      }"
+                    />Greenhouses</a
                   >
-                  <span
-                    class="position-relative d-block border-bottom border-2 bottom-0 w-100 border-primary"
-                    v-if="isActive('greenhouses')"
-                  ></span>
                 </li>
                 <li class="nav-item">
                   <a
@@ -114,12 +114,13 @@ function navigateTo(routeName) {
                     :class="isActive('plants')"
                     href="#"
                     @click.prevent="navigateTo('plants')"
-                    ><IconSeedling class="mx-2" />Plants</a
+                    ><IconSeedling
+                      class="mx-2"
+                      :class="{
+                        'text-primary': checkActiveRoute('plants'),
+                      }"
+                    />Plants</a
                   >
-                  <span
-                    class="d-block border-bottom border-2 bottom-0 w-100 border-primary"
-                    v-if="isActive('plants')"
-                  ></span>
                 </li>
                 <li class="nav-item">
                   <a
@@ -127,12 +128,13 @@ function navigateTo(routeName) {
                     :class="isActive('settings')"
                     href="#"
                     @click.prevent="navigateTo('settings')"
-                    ><IconSettings class="mx-2" />Settings</a
+                    ><IconSettings
+                      class="mx-2"
+                      :class="{
+                        'text-primary': checkActiveRoute('settings'),
+                      }"
+                    />Settings</a
                   >
-                  <span
-                    class="d-block border-bottom border-2 bottom-0 w-100 border-primary"
-                    v-if="isActive('settings')"
-                  ></span>
                 </li>
               </ul>
             </div>
@@ -152,7 +154,7 @@ function navigateTo(routeName) {
 
         <!-- Sidebar Mobile -->
         <nav
-          class="fixed-bottom m-auto mb-2 navbar navbar-dark bg-body-secondary d-xl-none py-2 rounded-5 shadow-lg col-12 col-md-10 col-lg-10"
+          class="fixed-bottom m-auto mb-2 pb-2 navbar navbar-dark bg-body-secondary d-xl-none py-2 rounded-5 shadow-lg col-12 col-md-10 col-lg-10"
           id="sidebarMenuMobile"
         >
           <div class="container-fluid">
@@ -164,11 +166,11 @@ function navigateTo(routeName) {
                 v-tooltip
                 title="Dashboard"
               >
-                <IconDash />
-                <span
-                  class="d-block border-bottom border-2 bottom-0 w-100 border-primary"
-                  v-if="isActive('dashboard')"
-                ></span>
+                <IconDash
+                  :class="{
+                    'text-primary': checkActiveRoute('dashboard'),
+                  }"
+                />
               </button>
               <button
                 class="btn"
@@ -177,11 +179,11 @@ function navigateTo(routeName) {
                 v-tooltip
                 title="Greenhouses"
               >
-                <IconHouses />
-                <span
-                  class="d-block border-bottom border-2 bottom-0 w-100 border-primary"
-                  v-if="isActive('greenhouses')"
-                ></span>
+                <IconHouses
+                  :class="{
+                    'text-primary': checkActiveRoute('greenhouses'),
+                  }"
+                />
               </button>
               <button
                 class="btn text-body"
@@ -190,11 +192,11 @@ function navigateTo(routeName) {
                 v-tooltip
                 title="Plants"
               >
-                <IconSeedling />
-                <span
-                  class="d-block border-bottom border-2 bottom-0 w-100 border-primary"
-                  v-if="isActive('plants')"
-                ></span>
+                <IconSeedling
+                  :class="{
+                    'text-primary': checkActiveRoute('plants'),
+                  }"
+                />
               </button>
               <button
                 class="btn text-body"
@@ -203,11 +205,11 @@ function navigateTo(routeName) {
                 v-tooltip
                 title="Settings"
               >
-                <IconSettings />
-                <span
-                  class="d-block border-bottom border-2 bottom-0 w-100 border-primary"
-                  v-if="isActive('settings')"
-                ></span>
+                <IconSettings
+                  :class="{
+                    'text-primary': checkActiveRoute('settings'),
+                  }"
+                />
               </button>
             </div>
           </div>
@@ -216,7 +218,11 @@ function navigateTo(routeName) {
         <!-- Main Content -->
         <main class="col-md-12 ms-sm-auto col-xl-10 px-md-4">
           <div class="container-fluid p-4 bg-body-tertiary rounded-5 shadow-sm">
-            <router-view name="dashboard"></router-view>
+            <router-view name="dashboard" v-slot="{ Component }">
+              <transition appear name="slide-fade" mode="out-in">
+                <component :is="Component" class="w-100" />
+              </transition>
+            </router-view>
           </div>
         </main>
       </div>

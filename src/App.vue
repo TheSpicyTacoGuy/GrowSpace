@@ -11,7 +11,11 @@ import MoveToTopBtn from "./components/MoveToTopBtn.vue";
   <main>
     <div id="page-content" class="container-fluid px-3 mx-auto">
       <div style="min-height: 70vh" class="py-4">
-        <router-view />
+        <router-view v-slot="component">
+          <transition appear name="fade" mode="out-in">
+            <component :is="component.Component" class="w-100" />
+          </transition>
+        </router-view>
       </div>
       <MainFooter />
       <MoveToTopBtn />
