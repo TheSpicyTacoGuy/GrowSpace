@@ -3,7 +3,6 @@ import { useRoute, useRouter } from "vue-router";
 import { ref, onMounted } from "vue";
 import { showToast } from "/js/toast";
 import IconPencil from "../../icons/IconPencil.vue";
-import { Tooltip } from "bootstrap";
 import { usePlants } from "../../../composables/usePlants";
 import { useGreenhouses } from "../../../composables/useGreenhouses";
 
@@ -169,13 +168,6 @@ const handleCareEvent = async (eventType) => {
 onMounted(() => {
   fetchPlant();
   fetchGreenhousesList(); // Fetch greenhouses on mount
-  // Initialize Bootstrap tooltips
-  const tooltipTriggerList = document.querySelectorAll(
-    '[data-bs-toggle="tooltip"]'
-  );
-  [...tooltipTriggerList].map(
-    (tooltipTriggerEl) => new Tooltip(tooltipTriggerEl)
-  );
 });
 </script>
 
@@ -220,9 +212,8 @@ onMounted(() => {
           v-if="!editing"
           class="btn btn-outline-secondary"
           @click="startEditing"
-          data-bs-toggle="tooltip"
+          v-tooltip
           title="Edit Plant"
-          tooltip="Edit Plant"
         >
           <IconPencil />
         </button>

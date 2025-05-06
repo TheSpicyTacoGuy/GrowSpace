@@ -66,10 +66,7 @@ const viewPlant = (plantId) => {
 // Function to fetch all available plants (not already in any greenhouse)
 const fetchAvailablePlants = async () => {
   try {
-    // Use the composable to fetch plants without a greenhouse
     const plantsData = await getPlantsWithoutGreenhouse();
-
-    // Additional safety check for plants already in this greenhouse
     const currentPlantIds = plants.value.map((p) => p.id);
     availablePlants.value = plantsData.filter(
       (p) => !currentPlantIds.includes(p.id)
@@ -88,21 +85,17 @@ const addPlantToGreenhouse = async () => {
   }
 
   try {
-    // Use the composable function to update both relationships
     await updateGreenhousePlantRelationship(
       selectedPlant.value.id,
       greenhouseId
     );
 
-    // Update the plant with the greenhouse ID for UI consistency
     await updatePlantDetails(selectedPlant.value.id, {
       greenhouseId: greenhouseId,
     });
 
-    // Update local state
     plants.value.push(selectedPlant.value);
 
-    // Remove from available plants
     const index = availablePlants.value.findIndex(
       (p) => p.id === selectedPlant.value.id
     );
@@ -125,20 +118,16 @@ const addPlantToGreenhouse = async () => {
 // Function to remove a plant from the greenhouse
 const removePlantFromGreenhouse = async (plant) => {
   try {
-    // Use the composable to update the relationship
     await updateGreenhousePlantRelationship(plant.id, null, greenhouseId);
 
-    // Update the plant to remove greenhouse association
     await updatePlantDetails(plant.id, {
       greenhouseId: null,
     });
 
-    // Update local state
     const index = plants.value.findIndex((p) => p.id === plant.id);
     if (index !== -1) {
       plants.value.splice(index, 1);
 
-      // Add back to available plants
       availablePlants.value.push(plant);
     }
 
@@ -151,10 +140,8 @@ const removePlantFromGreenhouse = async (plant) => {
 
 // Function to open the plant selection modal
 const openPlantModal = async () => {
-  // Fetch available plants
   await fetchAvailablePlants();
 
-  // Initialize and show modal
   if (!plantModal) {
     plantModal = new Modal(document.getElementById("addPlantModal"));
   }
@@ -165,16 +152,11 @@ const openPlantModal = async () => {
 onMounted(async () => {
   try {
     loading.value = true;
-    // Use the composable function to get the greenhouse with plants
     const data = await getGreenhouseWithPlants(greenhouseId);
 
     if (data) {
       greenhouse.value = data;
-      // Set the plants array from the expanded plants in the response
       plants.value = data.expandedPlants || [];
-
-      console.log("Greenhouse data loaded:", data);
-      console.log("Plants in greenhouse:", plants.value);
     } else {
       error.value = "Greenhouse not found";
       setTimeout(() => router.push("/dashboard/greenhouses"), 3000);
@@ -190,7 +172,8 @@ onMounted(async () => {
 </script>
 
 <template>
-  <div>
+  <div class="greenhouse-detail-page">
+    <!-- Loading state -->
     <div v-if="loading" class="text-center p-5">
       <div class="spinner-border text-primary" role="status">
         <span class="visually-hidden">Loading...</span>
@@ -198,72 +181,179 @@ onMounted(async () => {
       <p class="mt-2">Loading greenhouse details...</p>
     </div>
 
+    <!-- Error state -->
     <div v-else-if="error" class="alert alert-danger">
+      <i class="bi bi-exclamation-triangle-fill me-2"></i>
       {{ error }}
     </div>
 
+    <!-- Greenhouse details -->
     <div v-else-if="greenhouse" class="greenhouse-details">
-      <!-- Header with back button and add button -->
-      <div class="d-flex justify-content-between align-items-center mb-3">
-        <div class="d-flex align-items-center flex-wrap">
-          <router-link
-            :to="'/dashboard/greenhouses/'"
-            class="btn btn-outline-primary me-3"
-          >
-            &larr; Back to Greenhouses
-          </router-link>
-          <h2 class="mb-0">{{ greenhouse.name }}</h2>
+      <!-- Header section -->
+      <div class="card border-0 shadow-sm mb-4">
+        <div class="card-body">
+          <div class="d-flex justify-content-between align-items-center mb-3">
+            <div class="d-flex align-items-center">
+              <router-link
+                :to="{ name: 'greenhouses' }"
+                class="btn btn-outline-primary me-3"
+              >
+                &larr; Back to Greenhouses
+              </router-link>
+              <h2 class="mb-0 text-primary">
+                <i class="bi bi-houses-fill me-2"></i>
+                {{ greenhouse.name }}
+              </h2>
+            </div>
+          </div>
+
+          <!-- Greenhouse details cards -->
+          <div class="row mt-4">
+            <div class="col-md-4 mb-3">
+              <div class="card h-100 border-0 bg-body-secondary shadow-sm">
+                <div class="card-body">
+                  <h5 class="card-title">
+                    <i class="bi bi-info-circle me-2 text-primary"></i
+                    >Description
+                  </h5>
+                  <p class="card-text">
+                    {{ greenhouse.description || "No description provided" }}
+                  </p>
+                </div>
+              </div>
+            </div>
+            <div class="col-md-4 mb-3">
+              <div class="card h-100 border-0 bg-body-secondary shadow-sm">
+                <div class="card-body">
+                  <h5 class="card-title">
+                    <i class="bi bi-rulers me-2 text-primary"></i>Size
+                  </h5>
+                  <p class="card-text">
+                    <span class="badge bg-primary rounded-pill fs-6"
+                      >{{ greenhouse.size }} m²</span
+                    >
+                  </p>
+                </div>
+              </div>
+            </div>
+            <div class="col-md-4 mb-3">
+              <div class="card h-100 border-0 bg-body-secondary shadow-sm">
+                <div class="card-body">
+                  <h5 class="card-title">
+                    <i class="bi bi-geo-alt me-2 text-primary"></i>Location
+                  </h5>
+                  <p class="card-text">
+                    <span class="badge bg-secondary rounded-pill fs-6">{{
+                      greenhouse.location
+                    }}</span>
+                  </p>
+                </div>
+              </div>
+            </div>
+          </div>
         </div>
       </div>
 
-      <p>
-        <strong>Description:</strong>
-        {{ greenhouse.description || "No description" }}
-      </p>
-      <p><strong>Size:</strong> {{ greenhouse.size }} m²</p>
-      <p><strong>Location:</strong> {{ greenhouse.location }}</p>
-
       <!-- Plants section -->
-      <div class="d-flex justify-content-between align-items-center">
-        <h3 class="mt-4">Plants ({{ plants.length }})</h3>
-        <button class="btn btn-success" @click="openPlantModal">
-          <i class="bi bi-plus-circle me-1"></i> Add Plant
-        </button>
-      </div>
-      <div v-if="plants.length === 0" class="alert alert-info">
-        No plants added to this greenhouse yet.
-      </div>
-      <ul v-else class="list-group mb-4">
-        <li
-          v-for="plant in plants"
-          :key="plant.id"
-          class="list-group-item d-flex justify-content-between align-items-center w-100"
-        >
-          <div>
-            {{ plant.name || "Unnamed Plant" }}
-            <span class="badge bg-secondary ms-2">{{
-              plant.type || "Unknown type"
-            }}</span>
-            <span class="badge mx-1" :class="getStatusColor(plant.status)">{{
-              plant.status || "No status"
-            }}</span>
-          </div>
-          <div>
+      <div class="card border-0 shadow-sm mb-4">
+        <div class="card-body">
+          <div class="d-flex justify-content-between align-items-center mb-3">
+            <h3 class="mb-0">
+              <i class="bi bi-flower1 me-2 text-success"></i>
+              Plants
+              <span class="badge bg-success rounded-pill">{{
+                plants.length
+              }}</span>
+            </h3>
+
             <button
-              class="btn btn-sm btn-outline-danger me-2"
-              @click="removePlantFromGreenhouse(plant)"
+              class="btn btn-success"
+              @click="openPlantModal"
+              v-tooltip
+              title="Add Plant"
             >
-              <i class="bi bi-trash me-1"></i> Remove Plant
-            </button>
-            <button
-              class="btn btn-sm btn-outline-primary"
-              @click="viewPlant(plant.id)"
-            >
-              View
+              <i class="bi bi-plus-circle"></i>
             </button>
           </div>
-        </li>
-      </ul>
+
+          <div v-if="plants.length === 0" class="alert alert-info">
+            <i class="bi bi-info-circle me-2"></i>
+            No plants added to this greenhouse yet.
+          </div>
+
+          <!-- Plants grid -->
+          <div v-else class="row row-cols-1 row-cols-md-2 row-cols-lg-3 g-4">
+            <div v-for="plant in plants" :key="plant.id" class="col">
+              <div class="card h-100 shadow-sm hover-card position-relative">
+                <div class="position-absolute top-0 end-0 m-2">
+                  <span class="badge" :class="getStatusColor(plant.status)">
+                    <i class="bi bi-circle-fill me-1 small"></i>
+                    {{ plant.status || "No status" }}
+                  </span>
+                </div>
+                <div class="card-body">
+                  <h5 class="card-title">
+                    {{ plant.name || "Unnamed Plant" }}
+                  </h5>
+                  <h6 class="card-subtitle mb-2 text-muted">
+                    <i class="bi bi-tag me-1"></i>
+                    {{ plant.type || "Unknown type" }}
+                  </h6>
+
+                  <div class="mt-3">
+                    <div
+                      v-if="plant.lastWatered"
+                      class="d-flex align-items-center mb-2"
+                    >
+                      <i class="bi bi-droplet me-2 text-primary"></i>
+                      <small
+                        >Last watered:
+                        {{
+                          new Date(
+                            plant.lastWatered.seconds * 1000
+                          ).toLocaleDateString()
+                        }}</small
+                      >
+                    </div>
+                    <div
+                      v-if="plant.lastFertilised"
+                      class="d-flex align-items-center"
+                    >
+                      <i class="bi bi-water me-2 text-success"></i>
+                      <small
+                        >Last fertilised:
+                        {{
+                          new Date(
+                            plant.lastFertilised.seconds * 1000
+                          ).toLocaleDateString()
+                        }}</small
+                      >
+                    </div>
+                  </div>
+                </div>
+                <div class="card-footer bg-transparent border-top-0">
+                  <div class="d-flex justify-content-between">
+                    <button
+                      class="btn btn-sm btn-outline-danger"
+                      @click="removePlantFromGreenhouse(plant)"
+                      title="Remove from greenhouse"
+                    >
+                      <i class="bi bi-trash me-1"></i> Remove
+                    </button>
+                    <button
+                      class="btn btn-sm btn-primary"
+                      @click="viewPlant(plant.id)"
+                      title="View plant details"
+                    >
+                      <i class="bi bi-eye me-1"></i> View
+                    </button>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
     </div>
 
     <!-- Add Plant Modal -->
@@ -274,10 +364,11 @@ onMounted(async () => {
       aria-labelledby="addPlantModalLabel"
       aria-hidden="true"
     >
-      <div class="modal-dialog">
-        <div class="modal-content">
-          <div class="modal-header">
+      <div class="modal-dialog modal-lg">
+        <div class="modal-content border-0 shadow">
+          <div class="modal-header bg-body-secondary">
             <h5 class="modal-title" id="addPlantModalLabel">
+              <i class="bi bi-plus-circle me-2 text-success"></i>
               Add Plant to {{ greenhouse?.name }}
             </h5>
             <button
@@ -289,62 +380,61 @@ onMounted(async () => {
           </div>
           <div class="modal-body">
             <div v-if="availablePlants.length === 0" class="alert alert-info">
+              <i class="bi bi-info-circle me-2"></i>
               You don't have any plants available to add. Please create new
               plants first.
             </div>
             <div v-else>
-              <p>Select a plant to add:</p>
-              <div class="form-group mb-3">
+              <div class="input-group mb-4">
+                <span class="input-group-text bg-body-secondary">
+                  <i class="bi bi-search"></i>
+                </span>
                 <input
                   type="text"
-                  class="form-control mb-3"
+                  class="form-control"
                   placeholder="Search plants..."
                   v-model="searchTerm"
                 />
-                <div class="list-group">
-                  <button
-                    v-for="plant in filteredAvailablePlants"
-                    :key="plant.id"
-                    type="button"
-                    class="list-group-item list-group-item-action"
-                    :class="{ active: selectedPlant?.id === plant.id }"
-                    @click="selectedPlant = plant"
-                  >
-                    <div
-                      class="d-flex justify-content-between align-items-center"
-                    >
-                      <div>
-                        {{ plant.name }}
-                        <span class="badge bg-secondary ms-2">{{
-                          plant.type
-                        }}</span>
-                      </div>
-                      <span
-                        class="badge"
-                        :class="getStatusColor(plant.status)"
-                        >{{ plant.status }}</span
-                      >
+              </div>
+
+              <div class="list-group">
+                <button
+                  v-for="plant in filteredAvailablePlants"
+                  :key="plant.id"
+                  type="button"
+                  class="list-group-item list-group-item-action d-flex justify-content-between align-items-center p-3"
+                  :class="{ active: selectedPlant?.id === plant.id }"
+                  @click="selectedPlant = plant"
+                >
+                  <div class="d-flex align-items-center">
+                    <i class="bi bi-flower2 me-3 fs-4"></i>
+                    <div>
+                      <h6 class="mb-0">{{ plant.name }}</h6>
+                      <small>{{ plant.type || "Unknown type" }}</small>
                     </div>
-                  </button>
-                </div>
+                  </div>
+                  <span class="badge" :class="getStatusColor(plant.status)">{{
+                    plant.status
+                  }}</span>
+                </button>
               </div>
             </div>
           </div>
-          <div class="modal-footer">
+          <div class="modal-footer bg-body-secondary">
             <button
               type="button"
-              class="btn btn-secondary"
+              class="btn btn-outline-secondary"
               data-bs-dismiss="modal"
             >
-              Cancel
+              <i class="bi bi-x-circle me-1"></i> Cancel
             </button>
             <button
               type="button"
-              class="btn btn-primary"
+              class="btn btn-success"
               @click="addPlantToGreenhouse"
               :disabled="!selectedPlant || availablePlants.length === 0"
             >
-              Add Plant
+              <i class="bi bi-plus-circle me-1"></i> Add Plant
             </button>
           </div>
         </div>
@@ -352,3 +442,38 @@ onMounted(async () => {
     </div>
   </div>
 </template>
+
+<style scoped>
+.badge {
+  font-size: 0.8rem;
+}
+
+.hover-card {
+  transition:
+    transform 0.2s,
+    box-shadow 0.2s;
+}
+
+.hover-card:hover {
+  transform: translateY(-5px);
+  box-shadow: 0 10px 20px rgba(0, 0, 0, 0.1) !important;
+}
+
+.card-title {
+  font-weight: 600;
+}
+
+.list-group-item.active {
+  background-color: rgba(var(--bs-primary-rgb), 0.1);
+  border-color: var(--bs-primary);
+  color: var(--bs-dark);
+}
+
+.list-group-item.active i {
+  color: var(--bs-primary);
+}
+
+.rounded-pill {
+  padding: 0.5rem 1rem;
+}
+</style>

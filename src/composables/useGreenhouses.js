@@ -95,6 +95,7 @@ export function useGreenhouses() {
         
         greenhousesData.push({
           id: doc.id,
+          formattedDate: new Date(docData.createdAt?.seconds * 1000).toLocaleDateString(),
           ...docData,
         });
       });
@@ -205,18 +206,12 @@ export function useGreenhouses() {
         greenhouseData.plants = [];
       }
       
-      // Debug the plants array content
-      console.log("Plants array in greenhouse:", greenhouseData.plants);
-      
       // Get the actual plant data for each plant reference
       const plantsData = [];
       
       for (const plantRef of greenhouseData.plants) {
         try {
           let plantId;
-          
-          // Debug each plant reference
-          console.log("Processing plant reference:", plantRef);
           
           // Handle different types of references
           if (typeof plantRef === 'string') {
@@ -243,7 +238,6 @@ export function useGreenhouses() {
               id: plantSnap.id,
               ...plantSnap.data()
             });
-            console.log("Successfully loaded plant:", plantSnap.id);
           } else {
             console.warn(`Plant with ID ${plantId} not found in Firestore`);
           }
@@ -252,8 +246,6 @@ export function useGreenhouses() {
           // Continue with the next plant
         }
       }
-      
-      console.log(`Loaded ${plantsData.length} plants for greenhouse ${greenhouseId}`);
       
       // Return greenhouse with expanded plant data
       return {

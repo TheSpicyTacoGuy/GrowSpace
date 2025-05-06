@@ -1,43 +1,20 @@
 <script setup>
 import { useRouter } from "vue-router";
+import { useNavigation } from "../../../composables/useNavigation";
 import IconDash from "../../icons/IconDash.vue";
 import IconHouses from "../../icons/IconHouses.vue";
 import IconSeedling from "../../icons/IconSeedling.vue";
 import IconSettings from "../../icons/IconSettings.vue";
 
 const router = useRouter();
-
-function checkActiveRoute(routeName) {
-  return router.currentRoute.value.name === routeName;
-}
-function isActive(routeName) {
-  return checkActiveRoute(routeName) ? "active" : "";
-}
-
-function getPageDisplayName(routeName) {
-  const pageNames = {
-    dashboard: "Dashboard",
-    greenhouses: "Greenhouses",
-    "greenhouse-detail": "Greenhouses / Greenhouse Detail",
-    plants: "Plants",
-    "plant-detail": "Plants / Plant Detail",
-    settings: "Settings",
-  };
-  return pageNames[routeName] || routeName;
-}
-
-function navigateTo(routeName) {
-  if (routeName === "dashboard") {
-    router.push("/dashboard");
-  } else {
-    router.push(`/dashboard/${routeName}`);
-  }
-}
+const { checkActiveRoute, isActive, getPageDisplayName, navigateTo } =
+  useNavigation();
 </script>
+
 <template>
   <div class="dashboard container-fluid">
     <!-- Header -->
-    <nav class="navbar bg-body-secondary mb-4 rounded-5 shadow-sm">
+    <nav class="navbar bg-body-secondary rounded-5 shadow-sm">
       <div class="container-fluid">
         <a
           class="navbar-brand"
@@ -50,10 +27,11 @@ function navigateTo(routeName) {
     <!-- BreadCrumb -->
     <div class="container-fluid">
       <nav aria-label="breadcrumb">
-        <ol class="breadcrumb mb-4">
+        <ol class="breadcrumb my-4">
           <li class="breadcrumb-item">
             <a
               class="text-primary text-decoration-none"
+              :class="isActive('dashboard')"
               href="#"
               @click.prevent="navigateTo('dashboard')"
               >Dashboard</a

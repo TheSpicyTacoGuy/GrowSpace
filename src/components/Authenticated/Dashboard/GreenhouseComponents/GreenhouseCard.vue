@@ -16,14 +16,33 @@ defineProps({
     <div
       class="card-header border-0 d-flex justify-content-between align-items-center bg-primary text-white"
     >
-      <h5 class="card-title mb-0">{{ greenhouse.name }}</h5>
+      <router-link
+        :to="{
+          name: 'greenhouse-detail',
+          params: { id: greenhouse.id },
+        }"
+        class="text-white text-decoration-none"
+      >
+        <h5 class="card-title mb-0">{{ greenhouse.name }}</h5>
+      </router-link>
     </div>
     <div class="card-body">
       <p class="card-text">{{ greenhouse.description }}</p>
-      <p class="card-text">Size: {{ greenhouse.size }} sq mtr</p>
-      <p class="card-text">Location: {{ greenhouse.location }}</p>
       <p class="card-text">
-        Plants: {{ Object.keys(greenhouse.plants || {}).length }}
+        <i class="bi bi-rulers me-2 text-primary"></i>Size:
+        {{ greenhouse.size }}m²
+      </p>
+      <p class="card-text">
+        <i class="bi bi-geo-alt me-2 text-primary"></i>Location:
+        {{ greenhouse.location }}
+      </p>
+      <p class="card-text">
+        <i class="bi bi-calendar me-2 text-primary"></i>Created:
+        {{ greenhouse.formattedDate }}
+      </p>
+      <p class="card-text">
+        <i class="bi bi-flower1 me-2 text-primary"></i>Plants:
+        {{ greenhouse.plants ? Object.keys(greenhouse.plants).length : 0 }}
       </p>
     </div>
     <div class="card-footer border-0">

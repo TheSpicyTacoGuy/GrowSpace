@@ -1,10 +1,27 @@
 <script setup>
-defineProps({
+import { ref } from "vue";
+
+const props = defineProps({
   openAddModal: {
     type: Function,
     required: true,
   },
+  onSearch: {
+    type: Function,
+    required: true,
+  },
 });
+
+const searchTerm = ref("");
+
+const handleSearch = () => {
+  props.onSearch(searchTerm.value);
+};
+
+const clearSearch = () => {
+  searchTerm.value = "";
+  props.onSearch("");
+};
 </script>
 
 <template>
@@ -23,6 +40,31 @@ defineProps({
             @click="openAddModal"
           >
             <i class="bi bi-plus-lg"></i>
+          </button>
+        </div>
+      </div>
+    </div>
+    <div class="row g-3">
+      <!-- Search bar -->
+      <div class="col-md-6">
+        <div class="input-group">
+          <input
+            type="text"
+            class="form-control"
+            placeholder="Search greenhouses..."
+            v-model="searchTerm"
+            @input="handleSearch"
+          />
+          <button
+            class="btn"
+            type="button"
+            @click="clearSearch"
+            v-if="searchTerm"
+          >
+            <i class="bi bi-x-lg"></i>
+          </button>
+          <button class="btn bg-body" type="button" @click="handleSearch">
+            <i class="bi bi-search"></i>
           </button>
         </div>
       </div>

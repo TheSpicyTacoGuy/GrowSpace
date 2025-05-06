@@ -46,7 +46,7 @@ const clearSearch = () => {
         <div class="btn-group me-2">
           <button
             type="button"
-            class="btn btn-primary"
+            class="btn btn-success"
             v-tooltip
             title="Add Plant"
             @click="openAddModal"
