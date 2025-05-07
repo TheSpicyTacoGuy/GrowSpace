@@ -32,7 +32,7 @@ defineOptions({
 </script>
 
 <template>
-  <div class="card h-100 border-0 shadow-sm hover-card">
+  <div class="card h-100 border-0 shadow hover-card rounded-3">
     <div class="card-body text-center">
       <div :class="`icon-circle ${iconBgClass} mb-3`">
         <i :class="`bi bi-${icon} ${iconTextClass}`"></i>

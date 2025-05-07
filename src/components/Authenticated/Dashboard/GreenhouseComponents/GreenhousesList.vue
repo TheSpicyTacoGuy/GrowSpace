@@ -79,8 +79,8 @@ defineProps({
   </div>
 
   <!-- Greenhouse List -->
-  <div v-else class="col-md-12">
-    <div class="row row-cols-1 row-cols-md-2 row-cols-lg-3 g-4 mb-4">
+  <div v-else class="container-fluid">
+    <div class="row g-4 mb-4 row-cols-1 row-cols-md-2 row-cols-lg-3">
       <div v-for="greenhouse in greenhouses" :key="greenhouse.id" class="col">
         <GreenhouseCard :greenhouse="greenhouse" :onDelete="onDelete" />
       </div>

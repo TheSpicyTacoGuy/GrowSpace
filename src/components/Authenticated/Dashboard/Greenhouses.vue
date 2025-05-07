@@ -21,12 +21,28 @@ const {
   addGreenhouse,
   deleteGreenhouse,
   reset,
+  searchGreenhouses,
 } = useGreenhouses();
 
 // Modal controls
 const addModal = ref(null);
 const deleteModal = ref(null);
 const greenhouseToDelete = ref(null);
+
+// Add this for search functionality
+const handleSearch = async (query) => {
+  try {
+    // If your composable has a search method, use it
+    if (typeof searchGreenhouses === "function") {
+      await searchGreenhouses(query);
+    } else {
+      // Fall back to fetching with the search parameter
+      await fetchGreenhouses(false, query);
+    }
+  } catch (err) {
+    console.error("Search error:", err);
+  }
+};
 
 // Function to open the add greenhouse modal
 const openAddModal = () => {
@@ -102,8 +118,8 @@ defineOptions({
 
 <template>
   <div class="dashboard-container p-3">
-    <!-- Header with Add Button -->
-    <GreenhouseHeader :openAddModal="openAddModal" />
+    <!-- Header with Add Button and Search -->
+    <GreenhouseHeader :openAddModal="openAddModal" :onSearch="handleSearch" />
 
     <!-- Greenhouses List (includes loading, empty, and list states) -->
     <GreenhousesList

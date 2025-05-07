@@ -27,7 +27,7 @@ defineProps({
       </router-link>
     </div>
     <div class="card-body">
-      <p class="card-text">{{ greenhouse.description }}</p>
+      <p class="card-text text-muted">{{ greenhouse.description }}</p>
       <p class="card-text">
         <i class="bi bi-rulers me-2 text-primary"></i>Size:
         {{ greenhouse.size }}m²

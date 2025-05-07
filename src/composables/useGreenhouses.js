@@ -12,7 +12,7 @@ import {
   query,
   orderBy,
   limit,
-  startAfter
+  startAfter,
 } from "firebase/firestore";
 import { getAuth } from "firebase/auth";
 import { showToast } from "/js/toast";
@@ -20,7 +20,7 @@ import { showToast } from "/js/toast";
 export function useGreenhouses() {
   const db = getFirestore();
   const auth = getAuth();
-  
+
   // State
   const greenhouses = ref([]);
   const loading = ref(true);
@@ -33,19 +33,24 @@ export function useGreenhouses() {
 
   // Update computed property to handle plants as an array
   const greenhousesWithPlantCount = computed(() => {
-    return greenhouses.value.map(greenhouse => ({
+    return greenhouses.value.map((greenhouse) => ({
       ...greenhouse,
-      plantCount: Array.isArray(greenhouse.plants) ? greenhouse.plants.length : 0
+      plantCount: Array.isArray(greenhouse.plants)
+        ? greenhouse.plants.length
+        : 0,
     }));
   });
 
   // Fetch greenhouses from Firestore
-  const fetchGreenhouses = async (loadMore = false) => {
+  const fetchGreenhouses = async (loadMore = false, searchQuery = "") => {
     if (loadMore && noMoreResults.value) return;
-    
+
     if (!loadMore) {
       loading.value = true;
       error.value = null;
+      // Reset pagination when starting a new search
+      lastDoc.value = null;
+      noMoreResults.value = false;
     }
 
     try {
@@ -58,55 +63,82 @@ export function useGreenhouses() {
         db,
         `userData/${auth.currentUser.uid}/greenhouses`
       );
-      
+
       // Create query with pagination
-      let greenhouseQuery = query(
-        userGreenhousesRef,
-        orderBy('createdAt', 'desc'),
-        limit(itemsPerPage)
-      );
-      
-      // If loading more, start after the last document
-      if (loadMore && lastDoc.value) {
+      let greenhouseQuery;
+
+      if (searchQuery) {
+        // Search query handling (case insensitive search not directly supported in Firestore)
+        // We'll need to filter results client-side
         greenhouseQuery = query(
           userGreenhousesRef,
-          orderBy('createdAt', 'desc'),
-          startAfter(lastDoc.value),
+          orderBy("createdAt", "desc")
+        );
+      } else {
+        greenhouseQuery = query(
+          userGreenhousesRef,
+          orderBy("createdAt", "desc"),
           limit(itemsPerPage)
         );
-      }
-      
-      const querySnapshot = await getDocs(greenhouseQuery);
-      
-      // Update lastDoc for pagination
-      const docs = querySnapshot.docs;
-      lastDoc.value = docs.length > 0 ? docs[docs.length - 1] : null;
-      noMoreResults.value = docs.length < itemsPerPage;
 
-      const greenhousesData = [];
+        // If loading more, start after the last document
+        if (loadMore && lastDoc.value) {
+          greenhouseQuery = query(
+            userGreenhousesRef,
+            orderBy("createdAt", "desc"),
+            startAfter(lastDoc.value),
+            limit(itemsPerPage)
+          );
+        }
+      }
+
+      const querySnapshot = await getDocs(greenhouseQuery);
+
+      let greenhousesData = [];
       querySnapshot.forEach((doc) => {
         // Make sure plants is always an array
         const docData = doc.data();
-        
+
         // If plants is missing or not an array, initialize it
         if (!docData.plants || !Array.isArray(docData.plants)) {
           docData.plants = [];
         }
-        
+
         greenhousesData.push({
           id: doc.id,
-          formattedDate: new Date(docData.createdAt?.seconds * 1000).toLocaleDateString(),
+          formattedDate: new Date(
+            docData.createdAt?.seconds * 1000
+          ).toLocaleDateString(),
           ...docData,
         });
       });
 
+      // Apply client-side filtering for search
+      if (searchQuery) {
+        const searchLower = searchQuery.toLowerCase();
+        greenhousesData = greenhousesData.filter(
+          (greenhouse) =>
+            greenhouse.name.toLowerCase().includes(searchLower) ||
+            (greenhouse.description &&
+              greenhouse.description.toLowerCase().includes(searchLower))
+        );
+
+        // No pagination for search results
+        noMoreResults.value = true;
+      } else {
+        // Update lastDoc for pagination (only for non-search queries)
+        const docs = querySnapshot.docs;
+        lastDoc.value = docs.length > 0 ? docs[docs.length - 1] : null;
+        noMoreResults.value = docs.length < itemsPerPage;
+      }
+
       // If loading more, append to existing list; otherwise replace
-      if (loadMore) {
+      if (loadMore && !searchQuery) {
         greenhouses.value = [...greenhouses.value, ...greenhousesData];
       } else {
         greenhouses.value = greenhousesData;
       }
-      
+
       return greenhousesData;
     } catch (err) {
       console.error("Error fetching greenhouses: ", err);
@@ -122,7 +154,7 @@ export function useGreenhouses() {
   const addGreenhouse = async (greenhouseData) => {
     isAdding.value = true;
     error.value = null;
-    
+
     try {
       // Validate data
       if (!greenhouseData.name) {
@@ -140,7 +172,7 @@ export function useGreenhouses() {
         userId: auth.currentUser.uid,
         createdAt: serverTimestamp(),
         updatedAt: serverTimestamp(),
-        plants: greenhouseData.plants || [] // Initialize as an array, not an object
+        plants: greenhouseData.plants || [], // Initialize as an array, not an object
       };
 
       // Add document to Firestore
@@ -158,10 +190,10 @@ export function useGreenhouses() {
         createdAt: new Date(),
         updatedAt: new Date(),
       };
-      
+
       // Add to local state
       greenhouses.value.unshift(newGreenhouseWithId);
-      
+
       showToast("Greenhouse added successfully", "success");
       return newGreenhouseWithId;
     } catch (err) {
@@ -178,43 +210,47 @@ export function useGreenhouses() {
   const getGreenhouseWithPlants = async (greenhouseId) => {
     loading.value = true;
     error.value = null;
-    
+
     try {
       // Make sure user is authenticated
       if (!auth.currentUser) {
         throw new Error("You must be logged in to view greenhouse details");
       }
-      
+
       const userId = auth.currentUser.uid;
-      
+
       // Get the greenhouse document
-      const greenhouseRef = doc(db, `userData/${userId}/greenhouses`, greenhouseId);
+      const greenhouseRef = doc(
+        db,
+        `userData/${userId}/greenhouses`,
+        greenhouseId
+      );
       const greenhouseSnap = await getDoc(greenhouseRef);
-      
+
       if (!greenhouseSnap.exists()) {
         throw new Error("Greenhouse not found");
       }
-      
+
       // Get the base greenhouse data
       const greenhouseData = {
         id: greenhouseSnap.id,
-        ...greenhouseSnap.data()
+        ...greenhouseSnap.data(),
       };
-      
+
       // Ensure plants is an array
       if (!greenhouseData.plants || !Array.isArray(greenhouseData.plants)) {
         greenhouseData.plants = [];
       }
-      
+
       // Get the actual plant data for each plant reference
       const plantsData = [];
-      
+
       for (const plantRef of greenhouseData.plants) {
         try {
           let plantId;
-          
+
           // Handle different types of references
-          if (typeof plantRef === 'string') {
+          if (typeof plantRef === "string") {
             // It's just an ID string
             plantId = plantRef;
           } else if (plantRef.id) {
@@ -222,21 +258,21 @@ export function useGreenhouses() {
             plantId = plantRef.id;
           } else if (plantRef.path) {
             // It's an object with a path property
-            const pathParts = plantRef.path.split('/');
+            const pathParts = plantRef.path.split("/");
             plantId = pathParts[pathParts.length - 1];
           } else {
             console.warn("Skipping invalid plant reference:", plantRef);
             continue;
           }
-          
+
           // Create a document reference and fetch the plant
           const plantDocRef = doc(db, `userData/${userId}/plants`, plantId);
           const plantSnap = await getDoc(plantDocRef);
-          
+
           if (plantSnap.exists()) {
             plantsData.push({
               id: plantSnap.id,
-              ...plantSnap.data()
+              ...plantSnap.data(),
             });
           } else {
             console.warn(`Plant with ID ${plantId} not found in Firestore`);
@@ -246,16 +282,20 @@ export function useGreenhouses() {
           // Continue with the next plant
         }
       }
-      
+
       // Return greenhouse with expanded plant data
       return {
         ...greenhouseData,
-        expandedPlants: plantsData
+        expandedPlants: plantsData,
       };
     } catch (err) {
       console.error("Error fetching greenhouse with plants: ", err);
-      error.value = "Unable to load greenhouse details. Please try again later.";
-      showToast("Unable to load greenhouse details. Please try again later.", "error");
+      error.value =
+        "Unable to load greenhouse details. Please try again later.";
+      showToast(
+        "Unable to load greenhouse details. Please try again later.",
+        "error"
+      );
       throw err;
     } finally {
       loading.value = false;
@@ -266,7 +306,7 @@ export function useGreenhouses() {
   const deleteGreenhouse = async (greenhouseId) => {
     isDeleting.value = true;
     error.value = null;
-    
+
     try {
       // Make sure user is authenticated
       if (!auth.currentUser) {
@@ -274,9 +314,9 @@ export function useGreenhouses() {
       }
 
       const userId = auth.currentUser.uid;
-      
+
       // Verify the greenhouse exists in our state
-      const greenhouse = greenhouses.value.find(g => g.id === greenhouseId);
+      const greenhouse = greenhouses.value.find((g) => g.id === greenhouseId);
       if (!greenhouse) {
         throw new Error("Greenhouse not found");
       }
@@ -310,22 +350,38 @@ export function useGreenhouses() {
       await deleteDoc(greenhouseDocRef);
 
       // Remove from local state
-      const index = greenhouses.value.findIndex(g => g.id === greenhouseId);
+      const index = greenhouses.value.findIndex((g) => g.id === greenhouseId);
       if (index !== -1) {
         const deletedGreenhouse = greenhouses.value[index];
         greenhouses.value.splice(index, 1);
-        showToast(`"${deletedGreenhouse.name}" deleted successfully`, "success");
+        showToast(
+          `"${deletedGreenhouse.name}" deleted successfully`,
+          "success"
+        );
       }
-      
+
       return true;
     } catch (err) {
       console.error("Error deleting greenhouse: ", err);
       error.value = "Unable to delete greenhouse. Please try again later.";
-      showToast("Unable to delete greenhouse. Please try again later.", "error");
+      showToast(
+        "Unable to delete greenhouse. Please try again later.",
+        "error"
+      );
       throw err;
     } finally {
       isDeleting.value = false;
     }
+  };
+
+  // Add dedicated search function
+  const searchGreenhouses = async (query) => {
+    // Reset pagination
+    lastDoc.value = null;
+    noMoreResults.value = false;
+
+    // Use the fetchGreenhouses with search parameter
+    return await fetchGreenhouses(false, query);
   };
 
   // Reset state (useful when component unmounts)
@@ -348,12 +404,13 @@ export function useGreenhouses() {
     isAdding,
     isDeleting,
     noMoreResults,
-    
+
     // Methods
     fetchGreenhouses,
     addGreenhouse,
     deleteGreenhouse,
-    getGreenhouseWithPlants, // Added new function
-    reset
+    getGreenhouseWithPlants,
+    searchGreenhouses,
+    reset,
   };
 }
