@@ -68,9 +68,9 @@ onMounted(() => {
   <div
     class="container-fluid header-wrapper d-flex flex-wrap border-bottom w-100 align-items-center justify-content-between"
   >
-    <nav class="navbar navbar-expand-lg">
+    <nav class="navbar navbar-expand-xl">
       <!-- Mobile Menu Button -->
-      <div class="d-lg-none">
+      <div class="d-xl-none">
         <button
           class="navbar-toggler"
           type="button"
@@ -140,7 +140,7 @@ onMounted(() => {
         </div>
       </div>
       <!-- Vertical Divider -->
-      <div class="d-lg-none vr mx-2 my-2"></div>
+      <div class="d-xl-none vr mx-2 my-2"></div>
       <a
         class="navbar-brand text-primary fw-bold"
         href="#"
@@ -149,7 +149,7 @@ onMounted(() => {
         GrowSpace</a
       >
       <!-- Full Links for Larger Screens -->
-      <nav class="d-none d-lg-flex">
+      <nav class="d-none d-xl-flex">
         <ul class="navbar-nav">
           <li class="nav-item">
             <a
@@ -255,7 +255,7 @@ onMounted(() => {
             }}</span>
           </li>
           <li><hr class="dropdown-divider" /></li>
-          <li>
+          <!-- <li>
             <a
               class="dropdown-item"
               href="#"
@@ -270,7 +270,7 @@ onMounted(() => {
               @click.prevent="navigateTo('account')"
               >Account Settings</a
             >
-          </li>
+          </li> -->
           <li v-if="currentUser">
             <a
               class="dropdown-item"

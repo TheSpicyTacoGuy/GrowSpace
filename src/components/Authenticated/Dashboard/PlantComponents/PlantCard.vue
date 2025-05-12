@@ -168,9 +168,6 @@ const needsWater = computed(() => {
     const now = new Date();
     let lastWatered;
 
-    // Debug the actual value
-    console.log("lastWatered value:", JSON.stringify(props.plant.lastWatered));
-
     // Handle Firestore timestamp
     if (props.plant.lastWatered.seconds) {
       lastWatered = new Date(props.plant.lastWatered.seconds * 1000);
@@ -223,12 +220,6 @@ const needsFertiliser = computed(() => {
   try {
     const now = new Date();
     let lastFertilised;
-
-    // Debug the actual value
-    console.log(
-      "lastFertilised value:",
-      JSON.stringify(props.plant.lastFertilised)
-    );
 
     // Handle Firestore timestamp
     if (props.plant.lastFertilised.seconds) {
@@ -287,7 +278,6 @@ watch(
       JSON.stringify(newPlant.lastFertilised) !==
         JSON.stringify(oldPlant?.lastFertilised)
     ) {
-      console.log(`Plant ${newPlant.name} was updated - checking status`);
       checkAndUpdateStatus();
     }
   },
@@ -300,15 +290,17 @@ const checkAndUpdateStatus = () => {
   const needsWaterNow = needsWater.value;
   const needsFertiliserNow = needsFertiliser.value;
 
-  console.log(
-    `Status check for ${props.plant.name}: Needs water: ${needsWaterNow}, Needs fertiliser: ${needsFertiliserNow}`
-  );
-
   // Update plant status if needed
   if (needsWaterNow && props.plant.status !== "needs water") {
     console.log(`Updating ${props.plant.name} status to "needs water"`);
     props.onUpdate(props.plant.id, { status: "needs water" });
   } else if (!needsWaterNow && props.plant.status === "needs water") {
+    console.log(`Updating ${props.plant.name} status to "healthy"`);
+    props.onUpdate(props.plant.id, { status: "healthy" });
+  } else if (needsFertiliserNow && props.plant.status !== "needs fertiliser") {
+    console.log(`Updating ${props.plant.name} status to "needs fertiliser"`);
+    props.onUpdate(props.plant.id, { status: "needs fertiliser" });
+  } else if (!needsFertiliserNow && props.plant.status === "needs fertiliser") {
     console.log(`Updating ${props.plant.name} status to "healthy"`);
     props.onUpdate(props.plant.id, { status: "healthy" });
   }

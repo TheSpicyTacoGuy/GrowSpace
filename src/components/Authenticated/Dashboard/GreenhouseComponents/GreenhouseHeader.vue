@@ -28,7 +28,7 @@ const clearSearch = () => {
   <div
     class="dashboard-header bg-primary text-white rounded p-3 mb-4 shadow-sm"
   >
-    <div class="d-flex justify-content-between align-items-center">
+    <div class="d-flex justify-content-between align-items-center mb-3">
       <h1 class="h2"><i class="bi bi-houses-fill me-2"></i>Greenhouses</h1>
       <div class="btn-toolbar">
         <div class="btn-group me-2">

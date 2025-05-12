@@ -1,7 +1,7 @@
 :root {
   /* Base colors */
   --bs-white: #ffffff;
-  
+
   /* Theme colors */
   --bs-light: #dbf4f8;
   --bs-dark: #212131;
@@ -22,7 +22,7 @@
   --bs-success-rgb: 0, 171, 64;
   --bs-warning-rgb: 241, 199, 0;
   --bs-danger-rgb: 246, 0, 58;
-  
+
   /* Update theme-specific emphasis colors */
   --bs-primary-text-emphasis: #004c42;
   --bs-secondary-text-emphasis: #4d0719;
@@ -30,7 +30,7 @@
   --bs-info-text-emphasis: #0e5e77;
   --bs-warning-text-emphasis: #786300;
   --bs-danger-text-emphasis: #7b001d;
-  
+
   /* Update theme-specific background subtle colors */
   --bs-primary-bg-subtle: #ccefeb;
   --bs-secondary-bg-subtle: #f2d0d7;
@@ -38,7 +38,7 @@
   --bs-info-bg-subtle: #d2eefa;
   --bs-warning-bg-subtle: #faf5cc;
   --bs-danger-bg-subtle: #fdccd6;
-  
+
   /* Update theme-specific border subtle colors */
   --bs-primary-border-subtle: #99dfd6;
   --bs-secondary-border-subtle: #e6a1af;
@@ -93,7 +93,7 @@ a {
 }
 
 /* Dark mode adjustments */
-[data-bs-theme=dark] {
+[data-bs-theme="dark"] {
   --bs-primary: #00a38e;
   --bs-secondary: #bc1040;
   --bs-success: #20c060;
@@ -101,8 +101,6 @@ a {
   --bs-warning: #f5d133;
   --bs-danger: #f73357;
 }
-
-/* ...existing code... */
 
 /* Form control focus state */
 .form-control:focus,
@@ -211,7 +209,6 @@ a {
   margin: 15px 0;
 }
 
-
 .forecast-container {
   display: flex;
   flex-wrap: nowrap;
@@ -244,6 +241,253 @@ a {
   display: flex;
   justify-content: center;
   gap: 4px;
+}
+
+/* Weather Effect Styles */
+.weather-effect-container {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+  z-index: 1;
+  opacity: 0.7;
+  transition: opacity 0.5s ease;
+}
+
+.card-body {
+  z-index: 2;
+}
+
+.forecast-container {
+  position: relative;
+  overflow: hidden;
+  padding: 0 30px; /* Make room for the arrows */
+}
+
+.forecast-scroll-container {
+  scrollbar-width: none; /* Firefox */
+  -ms-overflow-style: none; /* IE and Edge */
+  padding: 8px 0;
+}
+
+.forecast-scroll-container::-webkit-scrollbar {
+  display: none; /* Chrome, Safari, Opera */
+}
+
+.forecast-day {
+  min-width: 120px; /* Ensure day cards have minimum width */
+}
+
+.scroll-arrow {
+  z-index: 10;
+  width: 30px;
+  height: 30px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
+  border-radius: 50%;
+}
+
+.scroll-left {
+  left: 5px;
+}
+
+.scroll-right {
+  right: 5px;
+}
+
+/* Weather Effect Styles */
+.weather-effect-container {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+  z-index: 1;
+  overflow: hidden;
+}
+
+.card-body {
+  z-index: 2;
+  position: relative;
+}
+
+/* Rain effect */
+.weather-effect-rain {
+  background: linear-gradient(
+    to bottom,
+    rgb(105 155 199 / 57%) 0%,
+    rgba(125, 165, 210, 0.08) 100%
+  );
+}
+
+/* Snow Effect */
+.weather-effect-snow {
+  background: linear-gradient(
+    to bottom,
+    rgb(145 145 145 / 55%) 0%,
+    rgba(240, 240, 250, 0.05) 100%
+  );
+}
+
+/* Sunny Effect */
+.weather-effect-sunny {
+  background: linear-gradient(to bottom, rgb(75 197 255) 0%, #bfb18aad 100%);
+  overflow: hidden;
+}
+
+.weather-effect-sunny::before {
+  content: "";
+  position: absolute;
+  top: -50px;
+  right: -50px;
+  width: 100px;
+  height: 100px;
+  border-radius: 50%;
+  background: radial-gradient(
+    circle,
+    rgba(255, 225, 50, 0.7) 0%,
+    rgb(255 225 50 / 37%) 70%,
+    transparent 100%
+  );
+  box-shadow: 0 0 50px 20px rgba(255, 205, 50, 0.5);
+  animation: sunshine 5s infinite alternate;
+}
+
+/* Cloudy Effect */
+.weather-effect-cloudy {
+  background: linear-gradient(
+    to bottom,
+    rgb(163 192 221 / 55%) 0%,
+    rgb(196 206 217 / 26%) 100%
+  );
+}
+
+.weather-effect-cloudy::before {
+  content: "";
+  position: absolute;
+  top: 20px;
+  left: 0;
+  width: 100%;
+  height: 40px;
+  background: radial-gradient(
+    ellipse,
+    rgba(220, 225, 230, 0.4) 0%,
+    transparent 70%
+  );
+  animation: clouds 20s linear infinite;
+}
+
+.weather-effect-cloudy::after {
+  content: "";
+  position: absolute;
+  top: 40px;
+  left: -100%;
+  width: 100%;
+  height: 30px;
+  background: radial-gradient(
+    ellipse,
+    rgba(220, 225, 230, 0.4) 0%,
+    transparent 70%
+  );
+  animation: clouds 15s linear 2s infinite;
+}
+
+/* Thunder Effect */
+.weather-effect-thunder {
+  background: linear-gradient(
+      to bottom,
+      rgb(49 49 57 / 86%) 0%,
+      rgb(42 42 61 / 8%) 100%
+    )
+    no-repeat center;
+  background-size: cover;
+}
+
+.weather-effect-thunder::before {
+  content: "";
+  position: absolute;
+  width: 100%;
+  height: 100%;
+  background: transparent;
+  animation: thunder 5s ease-in-out infinite;
+}
+
+/* Fog Effect */
+.weather-effect-fog {
+  background: linear-gradient(
+    to bottom,
+    rgba(230, 235, 240, 0.15) 0%,
+    rgba(230, 235, 240, 0.05) 100%
+  );
+}
+
+.weather-effect-fog::before {
+  content: "";
+  position: absolute;
+  width: 200%;
+  height: 100%;
+  background: linear-gradient(
+    90deg,
+    transparent 0%,
+    rgba(255, 255, 255, 0.2) 25%,
+    rgba(255, 255, 255, 0.2) 75%,
+    transparent 100%
+  );
+  left: -50%;
+  animation: fog 10s ease-in-out infinite;
+}
+
+@keyframes sunshine {
+  0% {
+    transform: scale(1);
+    opacity: 0.8;
+  }
+  100% {
+    transform: scale(1.1);
+    opacity: 1;
+  }
+}
+
+@keyframes clouds {
+  0% {
+    transform: translateX(0%);
+  }
+  100% {
+    transform: translateX(100%);
+  }
+}
+
+@keyframes thunder {
+  0%,
+  85%,
+  95%,
+  100% {
+    background-color: transparent;
+  }
+  90%,
+  97% {
+    background-color: rgba(255, 255, 200, 0.2);
+  }
+}
+
+@keyframes fog {
+  0% {
+    opacity: 0.3;
+    transform: translateX(-5%);
+  }
+  50% {
+    opacity: 0.5;
+    transform: translateX(5%);
+  }
+  100% {
+    opacity: 0.3;
+    transform: translateX(-5%);
+  }
 }
 
 /* Plants */
@@ -314,4 +558,3 @@ a {
   transform: translateX(15px);
   opacity: 0;
 }
-
