@@ -12,10 +12,12 @@ const { checkActiveRoute, isActive, getPageDisplayName, navigateTo } =
 </script>
 
 <template>
-  <div class="dashboard container-fluid">
+  <div class="dashboard">
     <!-- Header -->
-    <nav class="navbar bg-body-secondary rounded-5 shadow-sm">
-      <div class="container-fluid">
+    <nav
+      class="container-fluid px-3 navbar bg-body-secondary rounded-5 shadow-sm"
+    >
+      <div>
         <a
           class="navbar-brand"
           href="#"
