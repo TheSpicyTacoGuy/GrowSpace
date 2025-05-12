@@ -1,7 +1,7 @@
 // This is the Vite configuration file. It is used to configure the Vite development server and build process.
 import { defineConfig } from "vite";
 import vue from "@vitejs/plugin-vue";
-//import vueDevTools from 'vite-plugin-vue-devtools'
+//import vueDevTools from 'vite-plugin-vue-devtools' 
 
 import path from "path";
 import { fileURLToPath } from "url";
