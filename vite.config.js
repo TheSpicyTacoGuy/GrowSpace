@@ -13,6 +13,8 @@ const __dirname = path.dirname(__filename);
 export default defineConfig({
   plugins: [
     vue(),
+    // Let's use Rollup's manualChunks instead of the plugin
+    // for more reliable chunking
   ],
   root: path.resolve(__dirname, "src"),
   resolve: {
@@ -33,6 +35,27 @@ export default defineConfig({
     assetsDir: "assets",
     publicDir: path.resolve(__dirname, "public"),
     emptyOutDir: true,
+    // Increase the warning limit to 800kB
+    chunkSizeWarningLimit: 800,
+    
+    // Use Rollup's built-in manual chunking for better control
+    rollupOptions: {
+      output: {
+        manualChunks: {
+          'vendor': ['vue', 'vue-router'],
+          'bootstrap': ['bootstrap'],
+          'firebase-app': ['firebase/app'],
+          'firebase-auth': ['firebase/auth'],
+          'firebase-firestore': ['firebase/firestore'],
+          'firebase-storage': ['firebase/storage'],
+          'components': [
+            './src/components/Authenticated/Dashboard/PlantComponents/PlantCard.vue',
+            './src/components/Authenticated/Dashboard/GreenhouseDetail.vue',
+            './src/components/Authenticated/Dashboard/DashboardComponents/WeatherCard.vue'
+          ]
+        }
+      }
+    }
   },
   server: {
     port: 8080,

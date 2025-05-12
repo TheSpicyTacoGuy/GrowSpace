@@ -1,10 +1,10 @@
 <IfModule mod_rewrite.c>
   RewriteEngine On
-  RewriteBase /cos30043/s101634222/assignment_2/app/
+  RewriteBase /cos30043/s101634222/project/app/
   RewriteRule ^index\.html$ - [L]
   RewriteCond %{REQUEST_FILENAME} !-f
   RewriteCond %{REQUEST_FILENAME} !-d
-  RewriteRule . /cos30043/s101634222/assignment_2/app/index.html [L]
+  RewriteRule . /cos30043/s101634222/project/app/index.html [L]
 </IfModule>
 
 
