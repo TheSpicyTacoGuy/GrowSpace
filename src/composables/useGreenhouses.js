@@ -1,6 +1,5 @@
 import { ref, computed } from "vue";
 import {
-  getFirestore,
   collection,
   getDocs,
   getDoc,
@@ -14,13 +13,10 @@ import {
   limit,
   startAfter,
 } from "firebase/firestore";
-import { getAuth } from "firebase/auth";
+import { db, auth } from "@js/auth/firebase.js"; // Use your initialized instances
 import { showToast } from "/js/toast";
 
 export function useGreenhouses() {
-  const db = getFirestore();
-  const auth = getAuth();
-
   // State
   const greenhouses = ref([]);
   const loading = ref(true);

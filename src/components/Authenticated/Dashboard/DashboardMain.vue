@@ -1,14 +1,14 @@
 <script setup>
-import { useRouter } from "vue-router";
-import { useNavigation } from "../../../composables/useNavigation";
-import IconDash from "../../icons/IconDash.vue";
-import IconHouses from "../../icons/IconHouses.vue";
-import IconSeedling from "../../icons/IconSeedling.vue";
-import IconSettings from "../../icons/IconSettings.vue";
+import { useBreadcrumbs } from "@composables/useBreadcrumbs.js";
+import { useNavigation } from "@components/../composables/useNavigation";
+import IconDash from "@components/icons/IconDash.vue";
+import IconHouses from "@components/icons/IconHouses.vue";
+import IconSeedling from "@components/icons/IconSeedling.vue";
+import IconSettings from "@components/icons/IconSettings.vue";
+import IconTips from "@components/icons/IconTips.vue";
 
-const router = useRouter();
-const { checkActiveRoute, isActive, getPageDisplayName, navigateTo } =
-  useNavigation();
+const { matchedRoutes, breadcrumbLabels, router } = useBreadcrumbs();
+const { checkActiveRoute, isActive, navigateTo } = useNavigation();
 </script>
 
 <template>
@@ -30,21 +30,22 @@ const { checkActiveRoute, isActive, getPageDisplayName, navigateTo } =
     <div class="container-fluid">
       <nav aria-label="breadcrumb">
         <ol class="breadcrumb my-4">
-          <li class="breadcrumb-item">
-            <a
-              class="text-primary text-decoration-none"
-              :class="isActive('dashboard')"
-              href="#"
-              @click.prevent="navigateTo('dashboard')"
-              >Dashboard</a
-            >
-          </li>
           <li
-            v-if="router.currentRoute.value.name !== 'dashboard'"
-            class="breadcrumb-item active"
+            v-for="(matched, idx) in matchedRoutes"
+            :key="matched.path"
+            class="breadcrumb-item"
+            :class="{ active: idx === matchedRoutes.length - 1 }"
             aria-current="page"
           >
-            {{ getPageDisplayName(router.currentRoute.value.name) }}
+            <a
+              v-if="idx !== matchedRoutes.length - 1"
+              class="text-primary text-decoration-none"
+              href="#"
+              @click.prevent="router.push(matched.path)"
+            >
+              {{ breadcrumbLabels[idx] }}
+            </a>
+            <span v-else>{{ breadcrumbLabels[idx] }}</span>
           </li>
         </ol>
       </nav>
@@ -116,6 +117,22 @@ const { checkActiveRoute, isActive, getPageDisplayName, navigateTo } =
                     />Settings</a
                   >
                 </li>
+                <li class="nav-item">
+                  <a
+                    class="nav-link text-truncate ellipsis"
+                    :class="isActive('tips-forum')"
+                    href="#"
+                    @click.prevent="navigateTo('tips')"
+                  >
+                    <IconTips
+                      class="mx-2"
+                      :class="{
+                        'text-primary': checkActiveRoute('tips'),
+                      }"
+                    ></IconTips
+                    >Tips
+                  </a>
+                </li>
               </ul>
             </div>
             <button
@@ -132,7 +149,7 @@ const { checkActiveRoute, isActive, getPageDisplayName, navigateTo } =
           </div>
         </nav>
 
-        <!-- Sidebar Mobile -->
+        <!-- Botton Bar Mobile -->
         <nav
           class="fixed-bottom m-auto mb-2 pb-2 navbar navbar-dark bg-body-secondary d-xl-none py-2 rounded-5 shadow-lg col-12 col-md-10 col-lg-10"
           id="sidebarMenuMobile"
@@ -140,7 +157,7 @@ const { checkActiveRoute, isActive, getPageDisplayName, navigateTo } =
           <div class="container-fluid">
             <div class="d-flex justify-content-around w-100">
               <button
-                class="btn"
+                class="btn text-body d-flex flex-column align-items-center"
                 :class="isActive('dashboard')"
                 @click.prevent="navigateTo('dashboard')"
                 v-tooltip
@@ -153,7 +170,7 @@ const { checkActiveRoute, isActive, getPageDisplayName, navigateTo } =
                 />
               </button>
               <button
-                class="btn"
+                class="btn text-body btn d-flex flex-column align-items-center"
                 :class="isActive('greenhouses')"
                 @click.prevent="navigateTo('greenhouses')"
                 v-tooltip
@@ -166,7 +183,7 @@ const { checkActiveRoute, isActive, getPageDisplayName, navigateTo } =
                 />
               </button>
               <button
-                class="btn text-body"
+                class="btn text-body btn d-flex flex-column align-items-center"
                 :class="isActive('plants')"
                 @click.prevent="navigateTo('plants')"
                 v-tooltip
@@ -179,7 +196,20 @@ const { checkActiveRoute, isActive, getPageDisplayName, navigateTo } =
                 />
               </button>
               <button
-                class="btn text-body"
+                class="btn text-body btn d-flex flex-column align-items-center"
+                :class="isActive('tips')"
+                @click.prevent="navigateTo('tips')"
+                v-tooltip
+                title="Tips"
+              >
+                <IconTips
+                  :class="{
+                    'text-primary': checkActiveRoute('tips'),
+                  }"
+                />
+              </button>
+              <button
+                class="btn text-body btn d-flex flex-column align-items-center"
                 :class="isActive('settings')"
                 @click.prevent="navigateTo('settings')"
                 v-tooltip

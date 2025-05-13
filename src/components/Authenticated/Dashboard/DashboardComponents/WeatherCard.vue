@@ -1,4 +1,6 @@
 <script setup>
+import useWeatherCard from "@composables/useWeatherCard.js";
+
 const props = defineProps({
   weather: {
     type: Object,
@@ -6,230 +8,15 @@ const props = defineProps({
   },
 });
 
-defineOptions({
-  name: "WeatherCard",
-});
+defineOptions({ name: "WeatherCard" });
 
-import { ref, onMounted, watch, computed, onBeforeUnmount } from "vue";
-import RainEffect from "@js/weatherEffects/RainEffect.js";
-import SnowEffect from "@js/weatherEffects/SnowEffect.js"; // Add snow effect import
-
-// Scrollable forecast logic
-const scrollPosition = ref(0);
-const canScrollLeft = ref(false);
-const canScrollRight = ref(true); // Set initially true to show right arrow
-
-// Weather effects logic
-const rainEffect = ref(null);
-const snowEffect = ref(null); // Add snow effect ref
-const effectContainerRef = ref(null);
-
-// Computed property to determine the weather effect class
-const weatherEffectClass = computed(() => {
-  if (!props.weather.loaded || !props.weather.condition)
-    return "weather-effect-default";
-
-  const condition = props.weather.condition.toLowerCase();
-
-  // Define weather conditions in priority order (first match wins)
-  const weatherTypes = [
-    {
-      keywords: ["thunder", "lightning", "storm"],
-      effect: "weather-effect-thunder",
-    },
-    {
-      keywords: ["rain", "drizzle", "shower"],
-      effect: "weather-effect-rain",
-    },
-    {
-      keywords: ["snow", "sleet", "blizzard"],
-      effect: "weather-effect-snow",
-    },
-    { keywords: ["fog", "mist", "frost"], effect: "weather-effect-fog" },
-    {
-      keywords: ["clear", "sunny", "partly cloudy"],
-      effect: "weather-effect-sunny",
-    },
-    {
-      keywords: ["cloud", "overcast", "partly cloudy"],
-      effect: "weather-effect-cloudy",
-    },
-  ];
-
-  // Find the first matching weather type
-  for (const type of weatherTypes) {
-    if (type.keywords.some((keyword) => condition.includes(keyword))) {
-      return type.effect;
-    }
-  }
-
-  return "weather-effect-default";
-});
-
-// Update scroll indicators
-const updateScrollIndicators = () => {
-  const container = document.querySelector(".forecast-scroll-container");
-  if (!container) return;
-
-  scrollPosition.value = container.scrollLeft;
-  canScrollLeft.value = container.scrollLeft > 0;
-
-  // Check if we can scroll right (content width is greater than visible width plus current scroll)
-  const hasMoreContent =
-    container.scrollWidth > container.clientWidth + container.scrollLeft + 75; // 75px buffer
-  canScrollRight.value = hasMoreContent;
-};
-
-const scrollForecast = (direction) => {
-  const forecastContainer = document.querySelector(
-    ".forecast-scroll-container"
-  );
-  const scrollAmount = direction === "left" ? -120 : 120; // Adjust scroll amount as needed
-  forecastContainer.scrollBy({
-    left: scrollAmount,
-    behavior: "smooth",
-  });
-  updateScrollIndicators();
-};
-
-// Initialize the rain effect once
-const initializeRainEffect = () => {
-  if (!effectContainerRef.value || rainEffect.value) return;
-
-  try {
-    // Add required CSS for rain animation
-    RainEffect.addStyles();
-
-    // Create rain effect instance
-    rainEffect.value = new RainEffect(effectContainerRef.value);
-
-    // Start the effect if weather is already loaded and it's raining
-    if (
-      props.weather.loaded &&
-      weatherEffectClass.value === "weather-effect-rain"
-    ) {
-      rainEffect.value.start();
-    }
-  } catch (error) {
-    console.error("Failed to initialize rain effect:", error);
-  }
-};
-
-// Initialize the snow effect
-const initializeSnowEffect = () => {
-  if (!effectContainerRef.value || snowEffect.value) return;
-
-  try {
-    // Add required CSS for snow animation
-    SnowEffect.addStyles();
-
-    // Create snow effect instance
-    snowEffect.value = new SnowEffect(effectContainerRef.value);
-
-    // Start the effect if weather is already loaded and it's snowing
-    if (
-      props.weather.loaded &&
-      weatherEffectClass.value === "weather-effect-snow"
-    ) {
-      snowEffect.value.start();
-    }
-  } catch (error) {
-    console.error("Failed to initialize snow effect:", error);
-  }
-};
-
-// Watch for weather effects class changes
-watch(weatherEffectClass, (newClass) => {
-  // Make sure effects are initialized before using them
-  if (!rainEffect.value && effectContainerRef.value) {
-    initializeRainEffect();
-  }
-
-  if (!snowEffect.value && effectContainerRef.value) {
-    initializeSnowEffect();
-  }
-
-  // Start or stop effects based on weather
-  if (rainEffect.value) {
-    if (newClass === "weather-effect-rain") {
-      rainEffect.value.start();
-    } else {
-      rainEffect.value.stop();
-    }
-  }
-
-  if (snowEffect.value) {
-    if (newClass === "weather-effect-snow") {
-      snowEffect.value.start();
-    } else {
-      snowEffect.value.stop();
-    }
-  }
-});
-
-// Watch for container existence (for when component mounts later)
-watch(effectContainerRef, (container) => {
-  if (container) {
-    if (!rainEffect.value) {
-      initializeRainEffect();
-    }
-    if (!snowEffect.value) {
-      initializeSnowEffect();
-    }
-  }
-});
-
-// Also watch for weather loaded state changes
-watch(
-  () => props.weather.loaded,
-  (isLoaded) => {
-    if (isLoaded) {
-      // Wait for DOM to update with the forecast data
-      setTimeout(() => {
-        updateScrollIndicators();
-
-        // Try to initialize effects if needed
-        if (!rainEffect.value && effectContainerRef.value) {
-          initializeRainEffect();
-        }
-        if (!snowEffect.value && effectContainerRef.value) {
-          initializeSnowEffect();
-        }
-      }, 100);
-    }
-  }
-);
-
-// Cleanup function
-onBeforeUnmount(() => {
-  if (rainEffect.value) {
-    rainEffect.value.stop();
-  }
-  if (snowEffect.value) {
-    snowEffect.value.stop();
-  }
-});
-
-onMounted(() => {
-  // Scroll container logic
-  const container = document.querySelector(".forecast-scroll-container");
-  if (container) {
-    container.addEventListener("scroll", updateScrollIndicators);
-    setTimeout(updateScrollIndicators, 100);
-    setTimeout(updateScrollIndicators, 500);
-  }
-
-  // Get the effect container reference immediately
-  effectContainerRef.value = document.querySelector(
-    ".weather-effect-container"
-  );
-
-  // Initialize effects with a small delay to ensure DOM is ready
-  setTimeout(() => {
-    initializeRainEffect();
-    initializeSnowEffect();
-  }, 50);
-});
+const {
+  canScrollLeft,
+  canScrollRight,
+  effectContainerRef,
+  weatherEffectClass,
+  scrollForecast,
+} = useWeatherCard(props);
 </script>
 
 <template>
@@ -243,8 +30,8 @@ onMounted(() => {
     ></div>
     <div class="card-body text-center position-relative">
       <div class="bg-body-secondary rounded-3 bg-opacity-25">
-        <div class="icon-circle bg-white bg-opacity-10 mt-3 mb-3">
-          <i class="bi bi-cloud-sun"></i>
+        <div class="icon-circle bg-white bg-opacity-10 mt-3 mb-3 rounded-3">
+          <i class="bi bi-cloud-sun fs-1 text-white"></i>
         </div>
         <h5 class="card-title">Current Weather</h5>
         <!-- Loading State -->
@@ -308,7 +95,13 @@ onMounted(() => {
             </button>
 
             <!-- Scrollable forecast content -->
-            <div class="forecast-scroll-container d-flex overflow-auto">
+            <div
+              class="forecast-scroll-container d-flex flex-row overflow-auto justify-content-evenly"
+              style="scroll-behavior: smooth; min-width: 0"
+              :style="{ maxWidth: '100%' }"
+              ref="forecastScrollContainer"
+              @scroll="handleScroll"
+            >
               <div
                 v-for="(day, index) in weather.forecast"
                 :key="index"

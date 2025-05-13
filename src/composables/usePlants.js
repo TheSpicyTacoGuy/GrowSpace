@@ -1,6 +1,5 @@
 import { ref, computed } from "vue";
 import {
-  getFirestore,
   collection,
   getDocs,
   addDoc,
@@ -15,13 +14,10 @@ import {
   updateDoc,
   getDoc
 } from "firebase/firestore";
-import { getAuth } from "firebase/auth";
+import { db, auth } from "@js/auth/firebase.js";
 import { showToast } from "/js/toast";
 
 export function usePlants() {
-  const db = getFirestore();
-  const auth = getAuth();
-  
   // State
   const plants = ref([]);
   const loading = ref(true);
@@ -325,7 +321,6 @@ export function usePlants() {
         plants.value[index] = { ...plants.value[index], ...updateData };
       }
       
-      showToast("Plant updated successfully", "success");
       return true;
     } catch (err) {
       console.error("Error updating plant: ", err);
@@ -404,7 +399,6 @@ export function usePlants() {
         plants.value[index] = { ...plants.value[index], ...cleanUpdateData };
       }
       
-      showToast("Plant updated successfully", "success");
       return true;
     } catch (err) {
       console.error("Error updating plant: ", err);
@@ -531,13 +525,13 @@ export function usePlants() {
       // Get current plant data
       const plantRef = doc(db, `userData/${auth.currentUser.uid}/plants`, plantId);
       const plantSnap = await getDoc(plantRef);
-      
+
       if (!plantSnap.exists()) {
         throw new Error("Plant not found");
       }
-      
+
       const plantData = plantSnap.data();
-      
+
       // Create the careEvents array if it doesn't exist
       const careEvents = plantData.careEvents || [];
       careEvents.unshift(event);
@@ -575,12 +569,12 @@ export function usePlants() {
             const daysMatch = plantData.wateringSchedule.match(/\d+/);
             if (daysMatch) {
               let extractedValue = parseInt(daysMatch[0], 10);
-              
+
               // If it contains "weeks", multiply by 7
               if (plantData.wateringSchedule.includes("week")) {
                 extractedValue *= 7;
               }
-              
+
               daysToAdd = extractedValue;
             }
           }
@@ -592,9 +586,9 @@ export function usePlants() {
         // Set values for Firestore update
         updateData.status = "healthy"; // Reset status to healthy
         updateData.wateringDate = wateringDate;
-        updateData.lastWatered = serverTimestamp(); 
+        updateData.lastWatered = serverTimestamp();
         updateData.wateringReminderFired = false;
-        
+
         // Set values for UI update
         uiUpdateData.status = "healthy";
         uiUpdateData.wateringDate = wateringDate;
@@ -610,13 +604,19 @@ export function usePlants() {
 
       // Update Firestore with all the changes
       await updateDoc(plantRef, updateData);
-      
+
+      // Show toast with plant name
+      showToast(
+        `"${plantData.name}" ${eventType.toLowerCase()} successfully`,
+        "success"
+      );
+
       // Return updated plant data with the changes for immediate UI update
       // Use JS Date objects instead of serverTimestamp()
-      return { 
-        id: plantId, 
-        ...plantData, 
-        ...uiUpdateData 
+      return {
+        id: plantId,
+        ...plantData,
+        ...uiUpdateData,
       };
     } catch (err) {
       console.error("Error recording care event: ", err);

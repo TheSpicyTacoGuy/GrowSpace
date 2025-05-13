@@ -25,6 +25,8 @@ export default defineConfig({
       "@assets": path.resolve(__dirname, "src/assets"),
       // Alias for components
       "@components": path.resolve(__dirname, "src/components"),
+      // Alias for composables
+      "@composables": path.resolve(__dirname, "src/composables"),
       //Alias for js
       "@js": path.resolve(__dirname, "src/js"),
     },

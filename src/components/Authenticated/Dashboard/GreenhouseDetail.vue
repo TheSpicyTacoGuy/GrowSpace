@@ -3,8 +3,8 @@ import { useRoute, useRouter } from "vue-router";
 import { ref, onMounted, computed } from "vue";
 import { showToast } from "/js/toast";
 import { Modal } from "bootstrap";
-import { useGreenhouses } from "../../../composables/useGreenhouses";
-import { usePlants } from "../../../composables/usePlants";
+import { useGreenhouses } from "@composables/useGreenhouses";
+import { usePlants } from "@composables/usePlants";
 
 const router = useRouter();
 const route = useRoute();

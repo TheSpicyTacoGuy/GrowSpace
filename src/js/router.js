@@ -12,6 +12,7 @@ import GreenhousesComponent from "@components/Authenticated/Dashboard/Greenhouse
 import GreenhouseDetailComponent from "@components/Authenticated/Dashboard/GreenhouseDetail.vue";
 import PlantsComponent from "@components/Authenticated/Dashboard/Plants.vue";
 import PlantDetailComponent from "@components/Authenticated/Dashboard/PlantDetail.vue";
+import TipsForumComponent from "@components/Authenticated/Dashboard/TipsForum.vue";
 import { ref } from "vue";
 
 const routes = [
@@ -56,8 +57,6 @@ const routes = [
       description: "Learn more about us.",
     },
   },
-  // Dashboard routes
-  // This route is for authenticated users and should be protected
   {
     path: "/dashboard",
     name: "dashboard-main",
@@ -119,6 +118,17 @@ const routes = [
         },
       },
       {
+        path: "tips",
+        name: "tips",
+        components: {
+          dashboard: TipsForumComponent,
+        },
+        meta: {
+          title: "Tips",
+          description: "Share and like plant tips.",
+        },
+      },
+      {
         path: "/dashboard/:pathMatch(.*)*",
         name: "dashboard-not-found",
         components: {
@@ -133,7 +143,7 @@ const routes = [
   },
   {
     path: "/:pathMatch(.*)*",
-    name: "NotFound",
+    name: "not-found",
     component: NotFound,
   },
 ];
@@ -147,6 +157,29 @@ const router = createRouter({
     }
   },
 });
+
+// --- Add this block to update title and meta description ---
+router.afterEach((to) => {
+  // Set document title
+  if (to.meta && to.meta.title) {
+    document.title = to.meta.title + " | GrowSpace";
+  } else {
+    document.title = "GrowSpace";
+  }
+
+  // Set meta description
+  let description = to.meta && to.meta.description ? to.meta.description : "The best place to grow your plants, and manage your greenhouses.";
+  let metaTag = document.querySelector('meta[name="description"]');
+  if (metaTag) {
+    metaTag.setAttribute("content", description);
+  } else {
+    metaTag = document.createElement("meta");
+    metaTag.setAttribute("name", "description");
+    metaTag.setAttribute("content", description);
+    document.head.appendChild(metaTag);
+  }
+});
+// --- End meta update block ---
 
 // Create a reactive loading state for authentication
 const isAuthLoading = ref(false);

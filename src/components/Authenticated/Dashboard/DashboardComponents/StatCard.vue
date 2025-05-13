@@ -35,7 +35,7 @@ defineOptions({
   <div class="card h-100 border-0 shadow hover-card rounded-3">
     <div class="card-body text-center">
       <div :class="`icon-circle ${iconBgClass} mb-3`">
-        <i :class="`bi bi-${icon} ${iconTextClass}`"></i>
+        <i :class="`bi bi-${icon} ${iconTextClass} fs-1`"></i>
       </div>
       <h5 class="card-title">{{ title }}</h5>
       <p class="card-text display-4 fw-bold">{{ count }}</p>

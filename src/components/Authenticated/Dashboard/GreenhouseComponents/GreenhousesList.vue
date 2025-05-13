@@ -48,7 +48,7 @@ defineProps({
   <!-- Error State -->
   <div
     v-else-if="error && greenhouses.length === 0"
-    class="col-md-12 text-center py-5 bg-light rounded-3 shadow-sm"
+    class="col-md-12 text-center py-5 rounded-3 shadow-sm"
   >
     <div class="p-5">
       <i class="bi bi-exclamation-triangle display-1 text-danger mb-3"></i>
