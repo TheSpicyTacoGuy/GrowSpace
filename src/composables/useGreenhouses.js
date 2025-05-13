@@ -16,7 +16,7 @@ import {
 import { db, auth } from "@js/auth/firebase.js"; // Use your initialized instances
 import { showToast } from "/js/toast";
 
-export function useGreenhouses() {
+export function useGreenhouses(itemsPerPage = ref(50)) {
   // State
   const greenhouses = ref([]);
   const loading = ref(true);
@@ -25,7 +25,7 @@ export function useGreenhouses() {
   const isDeleting = ref(false);
   const lastDoc = ref(null);
   const noMoreResults = ref(false);
-  const itemsPerPage = 9;
+  const sortBy = ref("name");
 
   // Update computed property to handle plants as an array
   const greenhousesWithPlantCount = computed(() => {
@@ -36,6 +36,24 @@ export function useGreenhouses() {
         : 0,
     }));
   });
+
+  const sortedGreenhouses = computed(() => {
+    let arr = [...greenhouses.value];
+    if (sortBy.value === "name") {
+      arr.sort((a, b) => a.name.localeCompare(b.name));
+    } else if (sortBy.value === "name-desc") {
+      arr.sort((a, b) => b.name.localeCompare(a.name));
+    } else if (sortBy.value === "created") {
+      arr.sort((a, b) => b.createdAt - a.createdAt);
+    } else if (sortBy.value === "created-asc") {
+      arr.sort((a, b) => a.createdAt - b.createdAt);
+    }
+    return arr;
+  });
+
+  function setSortBy(val) {
+    sortBy.value = val;
+  }
 
   // Fetch greenhouses from Firestore
   const fetchGreenhouses = async (loadMore = false, searchQuery = "") => {
@@ -74,7 +92,7 @@ export function useGreenhouses() {
         greenhouseQuery = query(
           userGreenhousesRef,
           orderBy("createdAt", "desc"),
-          limit(itemsPerPage)
+          limit(itemsPerPage.value)
         );
 
         // If loading more, start after the last document
@@ -83,7 +101,7 @@ export function useGreenhouses() {
             userGreenhousesRef,
             orderBy("createdAt", "desc"),
             startAfter(lastDoc.value),
-            limit(itemsPerPage)
+            limit(itemsPerPage.val)
           );
         }
       }
@@ -125,7 +143,7 @@ export function useGreenhouses() {
         // Update lastDoc for pagination (only for non-search queries)
         const docs = querySnapshot.docs;
         lastDoc.value = docs.length > 0 ? docs[docs.length - 1] : null;
-        noMoreResults.value = docs.length < itemsPerPage;
+        noMoreResults.value = docs.length < itemsPerPage.value;
       }
 
       // If loading more, append to existing list; otherwise replace
@@ -395,6 +413,8 @@ export function useGreenhouses() {
     // State
     greenhouses,
     greenhousesWithPlantCount,
+    sortedGreenhouses,
+    sortBy,
     loading,
     error,
     isAdding,
@@ -407,6 +427,7 @@ export function useGreenhouses() {
     deleteGreenhouse,
     getGreenhouseWithPlants,
     searchGreenhouses,
+    setSortBy,
     reset,
   };
 }

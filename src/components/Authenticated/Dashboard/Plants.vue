@@ -3,17 +3,16 @@ import { onMounted, onUnmounted, ref } from "vue";
 import { Modal } from "bootstrap";
 import { usePlants } from "../../../composables/usePlants";
 import { useGreenhouses } from "../../../composables/useGreenhouses";
-import { serverTimestamp } from "firebase/firestore";
 
-// Import components
+// Components
 import PlantHeader from "./PlantComponents/PlantHeader.vue";
 import PlantsList from "./PlantComponents/PlantsList.vue";
 import AddPlantModal from "./PlantComponents/AddPlantModal.vue";
 import DeletePlantModal from "./PlantComponents/DeletePlantModal.vue";
 
-// Use the plants composable
+// Composables
 const {
-  filteredPlants,
+  sortedPlants,
   loading,
   error,
   isAdding,
@@ -21,14 +20,19 @@ const {
   noMoreResults,
   filters,
   fetchPlants,
-  setFilters,
   addPlant,
-  updatePlant,
   deletePlant,
   reset: resetPlants,
+  sortBy,
+  setSortBy,
+  handleSearch,
+  handleFilterByGreenhouse,
+  clearFilters,
+  handleWaterPlant,
+  handleFertilisePlant,
+  handleUpdatePlant,
 } = usePlants();
 
-// Use the greenhouses composable to get greenhouse data for dropdown
 const {
   greenhouses,
   fetchGreenhouses,
@@ -40,141 +44,55 @@ const addModal = ref(null);
 const deleteModal = ref(null);
 const plantToDelete = ref(null);
 
-// Function to open the add plant modal
 const openAddModal = () => {
   if (!addModal.value) {
     addModal.value = new Modal(document.getElementById("addPlantModal"));
   }
   addModal.value.show();
 };
-
-// Function to close the add plant modal
 const closeAddModal = () => {
-  if (addModal.value) {
-    addModal.value.hide();
-  }
+  if (addModal.value) addModal.value.hide();
 };
 
-// Function to open the delete confirmation modal
 const confirmDelete = (plant) => {
   plantToDelete.value = plant;
-
   if (!deleteModal.value) {
     deleteModal.value = new Modal(document.getElementById("deletePlantModal"));
   }
   deleteModal.value.show();
 };
-
-// Function to handle delete confirmation
 const handleDelete = async () => {
   if (!plantToDelete.value) return;
-
   try {
     await deletePlant(plantToDelete.value.id);
-    if (deleteModal.value) {
-      deleteModal.value.hide();
-    }
+    if (deleteModal.value) deleteModal.value.hide();
     plantToDelete.value = null;
   } catch (err) {
-    return err;
-    // Error is handled in the composable
+    console.error("Error deleting plant: ", err);
+    // Error handled in composable
   }
 };
 
-// Function to handle watering a plant
-const handleWaterPlant = async (plantId) => {
-  try {
-    const now = new Date();
-    await updatePlant(plantId, {
-      lastWatered: serverTimestamp(),
-      // Include a JavaScript timestamp for immediate UI update
-      _lastWateredJS: now,
-    });
-  } catch (err) {
-    return err;
-    // Error is handled in the composable
-  }
-};
-
-// Function to handle fertilising a plant
-const handleFertilisePlant = async (plantId) => {
-  try {
-    const now = new Date();
-    await updatePlant(plantId, {
-      lastFertilised: serverTimestamp(),
-      // Include a JavaScript timestamp for immediate UI update
-      _lastFertilisedJS: now,
-    });
-  } catch (err) {
-    return err;
-    // Error is handled in the composable
-  }
-};
-
-// Function to handle plant updates
-const handleUpdatePlant = async (plantId, updateData) => {
-  try {
-    await updatePlant(plantId, updateData);
-  } catch (err) {
-    return err;
-    // Error is handled in the composable
-  }
-};
-
-// Function to handle load more
 const handleLoadMore = async (loadMore = false) => {
   await fetchPlants(loadMore);
 };
 
-// Function to handle search
-const handleSearch = async (searchTerm) => {
-  await setFilters({ searchTerm });
-};
-
-// Function to filter by greenhouse
-const handleFilterByGreenhouse = async (greenhouseId) => {
-  await setFilters({ greenhouseId });
-};
-
-// Function to clear all filters
-const clearFilters = async () => {
-  await setFilters({
-    greenhouseId: null,
-    searchTerm: "",
-  });
-};
-
-// Initialize component
 onMounted(async () => {
-  // Fetch greenhouses first
   await fetchGreenhouses();
-  // Then fetch plants
   await fetchPlants();
 });
-
-// Clean up when component unmounts
 onUnmounted(() => {
-  // Dispose modals
-  if (addModal.value) {
-    addModal.value.dispose();
-  }
-  if (deleteModal.value) {
-    deleteModal.value.dispose();
-  }
-
-  // Reset state
+  if (addModal.value) addModal.value.dispose();
+  if (deleteModal.value) deleteModal.value.dispose();
   resetPlants();
   resetGreenhouses();
 });
 
-defineOptions({
-  name: "PlantsComponent",
-});
+defineOptions({ name: "PlantsComponent" });
 </script>
 
 <template>
   <div class="dashboard-container p-3">
-    <!-- Header with Add Button and Filters -->
     <PlantHeader
       :openAddModal="openAddModal"
       :onSearch="handleSearch"
@@ -183,9 +101,29 @@ defineOptions({
       :selectedGreenhouseId="filters.greenhouseId"
     />
 
-    <!-- Plants List (includes loading, empty, and list states) -->
+    <!-- Sort By Dropdown -->
+    <div class="row mb-3">
+      <div class="col-12 col-md-4 ms-auto">
+        <label for="sortPlants" class="form-label visually-hidden"
+          >Sort by</label
+        >
+        <select
+          id="sortPlants"
+          class="form-select"
+          v-model="sortBy"
+          @change="(e) => setSortBy(e.target.value)"
+          aria-label="Sort plants"
+        >
+          <option value="name">Name (A-Z)</option>
+          <option value="name-desc">Name (Z-A)</option>
+          <option value="created">Newest First</option>
+          <option value="created-asc">Oldest First</option>
+        </select>
+      </div>
+    </div>
+
     <PlantsList
-      :plants="filteredPlants"
+      :plants="sortedPlants"
       :greenhouses="greenhouses"
       :loading="loading"
       :error="error"
@@ -201,7 +139,6 @@ defineOptions({
       @clearFilters="clearFilters"
     />
 
-    <!-- Modals -->
     <AddPlantModal
       :isAdding="isAdding"
       :addPlant="addPlant"

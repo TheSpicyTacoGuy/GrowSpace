@@ -11,7 +11,6 @@ import DeleteGreenhouseModal from "./GreenhouseComponents/DeleteGreenhouseModal.
 
 // Use the greenhouse composable
 const {
-  greenhouses,
   loading,
   error,
   isAdding,
@@ -22,6 +21,9 @@ const {
   deleteGreenhouse,
   reset,
   searchGreenhouses,
+  sortBy,
+  setSortBy,
+  sortedGreenhouses,
 } = useGreenhouses();
 
 // Modal controls
@@ -29,14 +31,12 @@ const addModal = ref(null);
 const deleteModal = ref(null);
 const greenhouseToDelete = ref(null);
 
-// Add this for search functionality
+// Search
 const handleSearch = async (query) => {
   try {
-    // If your composable has a search method, use it
     if (typeof searchGreenhouses === "function") {
       await searchGreenhouses(query);
     } else {
-      // Fall back to fetching with the search parameter
       await fetchGreenhouses(false, query);
     }
   } catch (err) {
@@ -44,25 +44,25 @@ const handleSearch = async (query) => {
   }
 };
 
-// Function to open the add greenhouse modal
+// Sort
+const handleSort = (event) => {
+  setSortBy(event.target.value);
+};
+
+// Add Modal
 const openAddModal = () => {
   if (!addModal.value) {
     addModal.value = new Modal(document.getElementById("addGreenhouseModal"));
   }
   addModal.value.show();
 };
-
-// Function to close the add greenhouse modal
 const closeAddModal = () => {
-  if (addModal.value) {
-    addModal.value.hide();
-  }
+  if (addModal.value) addModal.value.hide();
 };
 
-// Function to open the delete confirmation modal
+// Delete Modal
 const confirmDelete = (greenhouse) => {
   greenhouseToDelete.value = greenhouse;
-
   if (!deleteModal.value) {
     deleteModal.value = new Modal(
       document.getElementById("deleteGreenhouseModal")
@@ -70,50 +70,33 @@ const confirmDelete = (greenhouse) => {
   }
   deleteModal.value.show();
 };
-
-// Function to handle delete confirmation
 const handleDelete = async () => {
   if (!greenhouseToDelete.value) return;
-
   try {
     await deleteGreenhouse(greenhouseToDelete.value.id);
-    if (deleteModal.value) {
-      deleteModal.value.hide();
-    }
+    if (deleteModal.value) deleteModal.value.hide();
     greenhouseToDelete.value = null;
   } catch (err) {
     return err;
-    // Error is handled in the composable
   }
 };
 
-// Function to handle load more
+// Load More
 const handleLoadMore = async (loadMore = false) => {
   await fetchGreenhouses(loadMore);
 };
 
-// Initialize component
+// Lifecycle
 onMounted(async () => {
   await fetchGreenhouses();
 });
-
-// Clean up when component unmounts
 onUnmounted(() => {
-  // Dispose modals
-  if (addModal.value) {
-    addModal.value.dispose();
-  }
-  if (deleteModal.value) {
-    deleteModal.value.dispose();
-  }
-
-  // Reset state
+  if (addModal.value) addModal.value.dispose();
+  if (deleteModal.value) deleteModal.value.dispose();
   reset();
 });
 
-defineOptions({
-  name: "GreenhousesComponent",
-});
+defineOptions({ name: "GreenhousesComponent" });
 </script>
 
 <template>
@@ -121,9 +104,30 @@ defineOptions({
     <!-- Header with Add Button and Search -->
     <GreenhouseHeader :openAddModal="openAddModal" :onSearch="handleSearch" />
 
-    <!-- Greenhouses List (includes loading, empty, and list states) -->
+    <!-- Sort By Dropdown -->
+    <div class="row mb-3">
+      <div class="col-12 col-md-4 ms-auto">
+        <label for="sortGreenhouses" class="form-label visually-hidden"
+          >Sort by</label
+        >
+        <select
+          id="sortGreenhouses"
+          class="form-select"
+          v-model="sortBy"
+          @change="handleSort"
+          aria-label="Sort greenhouses"
+        >
+          <option value="name">Name (A-Z)</option>
+          <option value="name-desc">Name (Z-A)</option>
+          <option value="created">Newest First</option>
+          <option value="created-asc">Oldest First</option>
+        </select>
+      </div>
+    </div>
+
+    <!-- Greenhouses List -->
     <GreenhousesList
-      :greenhouses="greenhouses"
+      :greenhouses="sortedGreenhouses"
       :loading="loading"
       :error="error"
       :noMoreResults="noMoreResults"
@@ -138,7 +142,6 @@ defineOptions({
       :addGreenhouse="addGreenhouse"
       @modalClosed="closeAddModal"
     />
-
     <DeleteGreenhouseModal
       :greenhouse="greenhouseToDelete"
       :isDeleting="isDeleting"

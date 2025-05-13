@@ -236,7 +236,7 @@ onMounted(() => {
                   <span
                     ><i class="bi bi-flower1 me-2 text-success"></i>Type</span
                   >
-                  <span class="badge bg-body-tertiary">{{
+                  <span class="badge bg-secondary">{{
                     plant.type || "Not specified"
                   }}</span>
                 </li>

@@ -13,6 +13,7 @@ import GreenhouseDetailComponent from "@components/Authenticated/Dashboard/Green
 import PlantsComponent from "@components/Authenticated/Dashboard/Plants.vue";
 import PlantDetailComponent from "@components/Authenticated/Dashboard/PlantDetail.vue";
 import TipsForumComponent from "@components/Authenticated/Dashboard/TipsForum.vue";
+import SettingsComponent from "@components/Authenticated/Dashboard/Settings.vue";
 import { ref } from "vue";
 
 const routes = [
@@ -126,6 +127,17 @@ const routes = [
         meta: {
           title: "Tips",
           description: "Share and like plant tips.",
+        },
+      },
+      {
+        path: "settings",
+        name: "settings",
+        components: {
+          dashboard: SettingsComponent,
+        },
+        meta: {
+          title: "Settings",
+          description: "Manage your account settings.",
         },
       },
       {

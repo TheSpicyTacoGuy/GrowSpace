@@ -5,6 +5,29 @@
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <link rel="icon" href="./favicon.ico" />
     <title>GrowSpace</title>
+    <script>
+      (function() {
+        function getThemeCookie() {
+          var match = document.cookie.match(/(?:^|;\s*)theme=([^;]*)/);
+          return match ? decodeURIComponent(match[1]) : null;
+        }
+        function getSystemTheme() {
+          return window.matchMedia &&
+            window.matchMedia("(prefers-color-scheme: dark)").matches
+            ? "dark"
+            : "light";
+        }
+        var theme = getThemeCookie() || localStorage.getItem("theme") || "system";
+        var html = document.documentElement;
+        html.removeAttribute("data-bs-theme");
+        var appliedTheme = theme === "system" ? getSystemTheme() : theme;
+        if (appliedTheme === "dark") {
+          html.setAttribute("data-bs-theme", "dark");
+        } else if (appliedTheme === "light") {
+          html.setAttribute("data-bs-theme", "light");
+        }
+      })();
+    </script>
   </head>
   <body>
     <div id="app"></div>

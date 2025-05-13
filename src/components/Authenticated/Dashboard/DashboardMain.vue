@@ -15,7 +15,7 @@ const { checkActiveRoute, isActive, navigateTo } = useNavigation();
   <div class="dashboard">
     <!-- Header -->
     <nav
-      class="container-fluid px-3 navbar bg-body-secondary rounded-5 shadow-sm"
+      class="container-fluid px-2 px-md-3 navbar bg-body-secondary rounded-5 shadow-sm"
     >
       <div>
         <a
@@ -27,30 +27,30 @@ const { checkActiveRoute, isActive, navigateTo } = useNavigation();
       </div>
     </nav>
     <!-- BreadCrumb -->
-    <div class="container-fluid">
+    <div class="container-fluid px-2 px-md-3">
       <nav aria-label="breadcrumb">
         <ol class="breadcrumb my-4">
           <li
-            v-for="(matched, idx) in matchedRoutes"
-            :key="matched.path"
+            v-for="(label, idx) in breadcrumbLabels"
+            :key="idx"
             class="breadcrumb-item"
-            :class="{ active: idx === matchedRoutes.length - 1 }"
+            :class="{ active: idx === breadcrumbLabels.length - 1 }"
             aria-current="page"
           >
             <a
-              v-if="idx !== matchedRoutes.length - 1"
-              class="text-primary text-decoration-none"
+              v-if="idx !== breadcrumbLabels.length - 1"
               href="#"
-              @click.prevent="router.push(matched.path)"
+              class="text-primary text-decoration-none"
+              @click.prevent="router.push(matchedRoutes[idx].path)"
             >
-              {{ breadcrumbLabels[idx] }}
+              {{ label }}
             </a>
-            <span v-else>{{ breadcrumbLabels[idx] }}</span>
+            <span v-else>{{ label }}</span>
           </li>
         </ol>
       </nav>
     </div>
-    <div class="container-fluid">
+    <div class="container-fluid px-2 px-md-3">
       <div class="row">
         <!-- Sidebar Desktop -->
         <nav
@@ -106,20 +106,6 @@ const { checkActiveRoute, isActive, navigateTo } = useNavigation();
                 <li class="nav-item">
                   <a
                     class="nav-link text-truncate ellipsis"
-                    :class="isActive('settings')"
-                    href="#"
-                    @click.prevent="navigateTo('settings')"
-                    ><IconSettings
-                      class="mx-2"
-                      :class="{
-                        'text-primary': checkActiveRoute('settings'),
-                      }"
-                    />Settings</a
-                  >
-                </li>
-                <li class="nav-item">
-                  <a
-                    class="nav-link text-truncate ellipsis"
                     :class="isActive('tips-forum')"
                     href="#"
                     @click.prevent="navigateTo('tips')"
@@ -132,6 +118,20 @@ const { checkActiveRoute, isActive, navigateTo } = useNavigation();
                     ></IconTips
                     >Tips
                   </a>
+                </li>
+                <li class="nav-item">
+                  <a
+                    class="nav-link text-truncate ellipsis"
+                    :class="isActive('settings')"
+                    href="#"
+                    @click.prevent="navigateTo('settings')"
+                    ><IconSettings
+                      class="mx-2"
+                      :class="{
+                        'text-primary': checkActiveRoute('settings'),
+                      }"
+                    />Settings</a
+                  >
                 </li>
               </ul>
             </div>
@@ -226,11 +226,13 @@ const { checkActiveRoute, isActive, navigateTo } = useNavigation();
         </nav>
 
         <!-- Main Content -->
-        <main class="col-md-12 ms-sm-auto col-xl-10 px-md-4">
-          <div class="container-fluid p-4 bg-body-tertiary rounded-5 shadow-sm">
+        <main class="col-md-12 ms-sm-auto col-xl-10 px-0 px-md-4">
+          <div
+            class="container-fluid p-3 p-md-4 bg-body-tertiary rounded-5 shadow-sm"
+          >
             <router-view name="dashboard" v-slot="{ Component }">
               <transition appear name="slide-fade" mode="out-in">
-                <component :is="Component" class="w-100" />
+                <component :is="Component" />
               </transition>
             </router-view>
           </div>

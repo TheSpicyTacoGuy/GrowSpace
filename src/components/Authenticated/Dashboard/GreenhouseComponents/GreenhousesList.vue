@@ -71,7 +71,6 @@ defineProps({
       <p class="lead mb-4 text-muted">
         Create your first greenhouse to start tracking your plants
       </p>
-      <!-- TODO: Add search functionality -->
       <button type="button" class="btn btn-success" @click="openAddModal">
         <i class="bi bi-plus-circle me-2"></i>Add Your First Greenhouse
       </button>

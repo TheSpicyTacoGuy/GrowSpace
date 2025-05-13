@@ -15,7 +15,7 @@ import {
   getDoc
 } from "firebase/firestore";
 import { db, auth } from "@js/auth/firebase.js";
-import { showToast } from "/js/toast";
+import { showToast } from "@js/toast.js";
 
 export function usePlants() {
   // State
@@ -28,9 +28,10 @@ export function usePlants() {
   const noMoreResults = ref(false);
   const itemsPerPage = 12;
   const filters = ref({
+    searchTerm: "",
     greenhouseId: null,
-    searchTerm: '',
   });
+  const sortBy = ref("name");
 
   // Function to convert watering frequency to human-readable text
   const getWateringScheduleText = (waterFrequency) => {
@@ -51,27 +52,54 @@ export function usePlants() {
 
   // Computed properties
   const filteredPlants = computed(() => {
-    let result = [...plants.value];
-    
-    // Filter by greenhouse if selected
-    if (filters.value.greenhouseId) {
-      result = result.filter(plant => 
-        plant.greenhouseId === filters.value.greenhouseId
+    let arr = [...plants.value];
+    // Filter by greenhouse
+    if (filters.value.greenhouseId && filters.value.greenhouseId !== "") {
+      arr = arr.filter(p => p.greenhouseId === filters.value.greenhouseId);
+    }
+    // Filter by search term
+    if (filters.value.searchTerm && filters.value.searchTerm.trim() !== "") {
+      const term = filters.value.searchTerm.trim().toLowerCase();
+      arr = arr.filter(p =>
+        (p.name && p.name.toLowerCase().includes(term)) ||
+        (p.type && p.type.toLowerCase().includes(term)) ||
+        (p.notes && p.notes.toLowerCase().includes(term))
       );
     }
-    
-    // Filter by search term if provided
-    if (filters.value.searchTerm) {
-      const searchLower = filters.value.searchTerm.toLowerCase();
-      result = result.filter(plant => 
-        plant.name.toLowerCase().includes(searchLower) ||
-        plant.type.toLowerCase().includes(searchLower) ||
-        (plant.notes && plant.notes.toLowerCase().includes(searchLower))
-      );
-    }
-    
-    return result;
+    return arr;
   });
+
+  const sortedPlants = computed(() => {
+    let arr = [...filteredPlants.value];
+    if (sortBy.value === "name") {
+      arr.sort((a, b) => a.name.localeCompare(b.name));
+    } else if (sortBy.value === "name-desc") {
+      arr.sort((a, b) => b.name.localeCompare(a.name));
+    } else if (sortBy.value === "created") {
+      arr.sort((a, b) => b.createdAt - a.createdAt);
+    } else if (sortBy.value === "created-asc") {
+      arr.sort((a, b) => a.createdAt - b.createdAt);
+    }
+    return arr;
+  });
+
+  function setSortBy(val) {
+    sortBy.value = val;
+  }
+
+  function setFilters(newFilters) {
+    filters.value = { ...filters.value, ...newFilters };
+  }
+
+  const handleSearch = async (searchTerm) => {
+    setFilters({ searchTerm });
+  };
+  const handleFilterByGreenhouse = async (greenhouseId) => {
+    setFilters({ greenhouseId });
+  };
+  const clearFilters = async () => {
+    setFilters({ greenhouseId: null, searchTerm: "" });
+  };
 
   // Fetch plants from Firestore
   const fetchPlants = async (loadMore = false) => {
@@ -161,14 +189,6 @@ export function usePlants() {
     } finally {
       loading.value = false;
     }
-  };
-
-  // Set filters and refetch
-  const setFilters = async (newFilters) => {
-    filters.value = { ...filters.value, ...newFilters };
-    lastDoc.value = null;
-    noMoreResults.value = false;
-    return await fetchPlants(false);
   };
 
   // Add plant
@@ -739,6 +759,122 @@ export function usePlants() {
     }
   };
 
+  // --- Computed helpers ---
+  function getLastWateredFormatted(plant) {
+    if (!plant.lastWatered) return "Never";
+    try {
+      if (plant.lastWatered.seconds) {
+        return new Date(plant.lastWatered.seconds * 1000).toLocaleDateString();
+      }
+      if (plant.lastWatered.type === "server_timestamp") {
+        return new Date().toLocaleDateString();
+      }
+      if (plant.lastWatered instanceof Date) {
+        return plant.lastWatered.toLocaleDateString();
+      }
+      if (typeof plant.lastWatered === "string") {
+        return new Date(plant.lastWatered).toLocaleDateString();
+      }
+      return new Date().toLocaleDateString();
+    } catch {
+      return "Recently";
+    }
+  }
+
+  function getLastFertilisedFormatted(plant) {
+    if (!plant.lastFertilised) return "Never";
+    try {
+      if (plant.lastFertilised.seconds) {
+        return new Date(plant.lastFertilised.seconds * 1000).toLocaleDateString();
+      }
+      if (plant.lastFertilised.type === "server_timestamp") {
+        return new Date().toLocaleDateString();
+      }
+      if (plant.lastFertilised instanceof Date) {
+        return plant.lastFertilised.toLocaleDateString();
+      }
+      if (typeof plant.lastFertilised === "string") {
+        return new Date(plant.lastFertilised).toLocaleDateString();
+      }
+      return new Date().toLocaleDateString();
+    } catch {
+      return "Recently";
+    }
+  }
+
+  function needsWater(plant) {
+    if (!plant.lastWatered) return true;
+    try {
+      const now = new Date();
+      let lastWatered;
+      if (plant.lastWatered.seconds) {
+        lastWatered = new Date(plant.lastWatered.seconds * 1000);
+      } else if (plant.lastWatered._methodName === "serverTimestamp" || plant.lastWatered.type === "server_timestamp") {
+        return false;
+      } else if (plant.lastWatered instanceof Date) {
+        lastWatered = plant.lastWatered;
+      } else if (typeof plant.lastWatered === "string") {
+        lastWatered = new Date(plant.lastWatered);
+      } else if (typeof plant.lastWatered === "number") {
+        lastWatered = new Date(plant.lastWatered);
+      } else {
+        lastWatered = new Date(plant.lastWatered);
+      }
+      if (isNaN(lastWatered.getTime())) return false;
+      const daysSinceWatered = Math.floor((now - lastWatered) / (1000 * 60 * 60 * 24));
+      return daysSinceWatered >= (plant.waterFrequency || 7);
+    } catch {
+      return false;
+    }
+  }
+
+  function needsFertiliser(plant) {
+    if (!plant.lastFertilised) return true;
+    try {
+      const now = new Date();
+      let lastFertilised;
+      if (plant.lastFertilised.seconds) {
+        lastFertilised = new Date(plant.lastFertilised.seconds * 1000);
+      } else if (plant.lastFertilised._methodName === "serverTimestamp" || plant.lastFertilised.type === "server_timestamp") {
+        return false;
+      } else if (plant.lastFertilised instanceof Date) {
+        lastFertilised = plant.lastFertilised;
+      } else if (typeof plant.lastFertilised === "string") {
+        lastFertilised = new Date(plant.lastFertilised);
+      } else if (typeof plant.lastFertilised === "number") {
+        lastFertilised = new Date(plant.lastFertilised);
+      } else {
+        lastFertilised = new Date(plant.lastFertilised);
+      }
+      if (isNaN(lastFertilised.getTime())) return false;
+      const daysSinceFertilised = Math.floor((now - lastFertilised) / (1000 * 60 * 60 * 24));
+      return daysSinceFertilised >= (plant.fertiliseFrequency || 30);
+    } catch {
+      return false;
+    }
+  }
+
+  // --- Care event handlers ---
+  const handleWater = async (plant) => {
+    await recordCareEvent(plant.id, "Watered");
+  };
+  const handleFertilise = async (plant) => {
+    await recordCareEvent(plant.id, "Fertilised");
+  };
+
+  // Add these handler functions to the composable for use in your component
+  const handleWaterPlant = async (plantId) => {
+    await recordCareEvent(plantId, "Watered");
+  };
+
+  const handleFertilisePlant = async (plantId) => {
+    await recordCareEvent(plantId, "Fertilised");
+  };
+
+  const handleUpdatePlant = async (plantId, updateData) => {
+    await updatePlant(plantId, updateData);
+  };
+
   // Reset state (useful when component unmounts)
   const reset = () => {
     plants.value = [];
@@ -758,16 +894,19 @@ export function usePlants() {
     // State
     plants,
     filteredPlants,
+    sortedPlants,
     loading,
     error,
     isAdding,
     isDeleting,
     noMoreResults,
     filters,
+    sortBy,
     
     // Methods
     fetchPlants,
     setFilters,
+    setSortBy,
     addPlant,
     updatePlant,
     updatePlantDetails,
@@ -777,6 +916,18 @@ export function usePlants() {
     reset,
     getWateringScheduleText,
     updateGreenhousePlantRelationship,
-    getPlantsWithoutGreenhouse  // Add the new function
+    getPlantsWithoutGreenhouse,  // Add the new function
+    getLastWateredFormatted,
+    getLastFertilisedFormatted,
+    needsWater,
+    needsFertiliser,
+    handleWater,
+    handleFertilise,
+    handleSearch,
+    handleFilterByGreenhouse,
+    clearFilters,
+    handleWaterPlant,
+    handleFertilisePlant,
+    handleUpdatePlant,
   };
 }

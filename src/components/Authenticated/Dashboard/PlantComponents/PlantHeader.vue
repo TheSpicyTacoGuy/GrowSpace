@@ -1,5 +1,5 @@
 <script setup>
-import { ref } from "vue";
+import { ref, watch } from "vue";
 
 const props = defineProps({
   openAddModal: {
@@ -25,6 +25,14 @@ const props = defineProps({
 });
 
 const searchTerm = ref("");
+const selected = ref(props.selectedGreenhouseId);
+
+watch(
+  () => props.selectedGreenhouseId,
+  (val) => {
+    selected.value = val;
+  }
+);
 
 const handleSearch = () => {
   props.onSearch(searchTerm.value);
@@ -40,25 +48,29 @@ const clearSearch = () => {
   <div
     class="dashboard-header bg-primary text-white rounded p-3 mb-4 shadow-sm"
   >
-    <div class="d-flex justify-content-between align-items-center mb-3">
-      <h1 class="h2"><i class="bi bi-flower1 me-2"></i>Plants</h1>
-      <div class="btn-toolbar">
-        <div class="btn-group me-2">
-          <button
-            type="button"
-            class="btn btn-success"
-            v-tooltip
-            title="Add Plant"
-            @click="openAddModal"
-          >
-            <i class="bi bi-plus-lg"></i>
-          </button>
+    <div class="row align-items-center mb-3">
+      <div class="col-12 col-md-6 mb-2 mb-md-0">
+        <h1 class="h3 h2-md m-0"><i class="bi bi-flower1 me-2"></i>Plants</h1>
+      </div>
+      <div class="col-12 col-md-6 text-md-end">
+        <div class="btn-toolbar justify-content-md-end">
+          <div class="btn-group">
+            <button
+              type="button"
+              class="btn btn-success"
+              v-tooltip
+              title="Add Plant"
+              @click="openAddModal"
+            >
+              <i class="bi bi-plus-lg"></i>
+            </button>
+          </div>
         </div>
       </div>
     </div>
-    <div class="row g-3">
+    <div class="row g-2 g-md-3">
       <!-- Search bar -->
-      <div class="col-md-6">
+      <div class="col-12 col-md-6">
         <div class="input-group">
           <input
             type="text"
@@ -80,12 +92,12 @@ const clearSearch = () => {
           </button>
         </div>
       </div>
-
       <!-- Greenhouse filter -->
-      <div class="col-md-6">
+      <div class="col-12 col-md-6">
         <select
           class="form-select"
-          @change="onFilterByGreenhouse(selectedGreenhouseId)"
+          v-model="selected"
+          @change="onFilterByGreenhouse(selected)"
         >
           <option :value="null">All Greenhouses</option>
           <option

@@ -40,30 +40,39 @@ export function useBreadcrumbs() {
     { immediate: true }
   );
 
-  // Use all matched routes for breadcrumbs (including parents)
   const matchedRoutes = computed(() => router.currentRoute.value.matched);
 
-  // Compute breadcrumb labels, using dynamic names for detail pages
-  const breadcrumbLabels = computed(() =>
-    matchedRoutes.value.map((matched) => {
-      if (
+  const breadcrumbLabels = computed(() => {
+    const labels = [];
+    matchedRoutes.value.forEach((matched) => {
+      // Skip dashboard-main in the label, but keep for hierarchy
+      if (matched.name === "dashboard-main") return;
+      if (matched.path === "/dashboard" || matched.name === "dashboard") {
+        labels.push("Dashboard");
+      } else if (
         matched.name === "plant-detail" &&
-        router.currentRoute.value.params.id &&
-        dynamicNames.value[`plant-${router.currentRoute.value.params.id}`]
+        router.currentRoute.value.params.id
       ) {
-        return dynamicNames.value[`plant-${router.currentRoute.value.params.id}`];
-      }
-      if (
+        labels.push(
+          dynamicNames.value[`plant-${router.currentRoute.value.params.id}`] ||
+          matched.meta?.title ||
+          matched.name
+        );
+      } else if (
         matched.name === "greenhouse-detail" &&
-        router.currentRoute.value.params.id &&
-        dynamicNames.value[`greenhouse-${router.currentRoute.value.params.id}`]
+        router.currentRoute.value.params.id
       ) {
-        return dynamicNames.value[`greenhouse-${router.currentRoute.value.params.id}`];
+        labels.push(
+          dynamicNames.value[`greenhouse-${router.currentRoute.value.params.id}`] ||
+          matched.meta?.title ||
+          matched.name
+        );
+      } else {
+        labels.push(matched.meta?.title || matched.name);
       }
-      // Prefer meta.title, fallback to route name
-      return matched.meta?.title || matched.name;
-    })
-  );
+    });
+    return labels;
+  });
 
   return {
     matchedRoutes,

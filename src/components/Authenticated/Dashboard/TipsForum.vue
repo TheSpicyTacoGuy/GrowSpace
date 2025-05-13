@@ -1,6 +1,6 @@
 <template>
   <div class="container py-4">
-    <h2 class="mb-4"><i class="bi bi-chat-dots me-2"></i>Plant Tips Forum</h2>
+    <TipsHeader />
     <form @submit.prevent="submitTip" class="mb-4 card card-body shadow-sm">
       <div class="mb-3">
         <label for="tip" class="form-label">Share a tip:</label>
@@ -196,6 +196,7 @@
 <script setup>
 // filepath: src/components/Authenticated/Dashboard/TipsForum.vue
 import useTipsForum from "@composables/useTipsForum";
+import TipsHeader from "./TipsComponents/TipsHeader.vue";
 
 const {
   tips,

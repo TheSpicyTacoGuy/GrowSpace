@@ -18,17 +18,6 @@ function isActive(routeName) {
   return checkActiveRoute(routeName) ? "active" : "";
 }
 
-function toggleDarkMode() {
-  const darkModeSwitch = document.getElementById("dark-mode-switch");
-  if (darkModeSwitch.checked) {
-    document.body.setAttribute("data-bs-theme", "dark");
-    localStorage.setItem("darkMode", "enabled");
-  } else {
-    document.body.removeAttribute("data-bs-theme");
-    localStorage.setItem("darkMode", "disabled");
-  }
-}
-
 // Updated to use vue-router for page navigation
 function navigateTo(routeName) {
   if (routeName === "home") {
@@ -51,16 +40,6 @@ onMounted(() => {
   [...tooltipTriggerList].map(
     (tooltipTriggerEl) => new Tooltip(tooltipTriggerEl)
   );
-
-  const darkMode = localStorage.getItem("darkMode");
-  const darkModeSwitch = document.getElementById("dark-mode-switch");
-  if (darkMode === "enabled") {
-    document.body.setAttribute("data-bs-theme", "dark");
-    darkModeSwitch.checked = true;
-  } else {
-    document.body.removeAttribute("data-bs-theme");
-    darkModeSwitch.checked = false;
-  }
 });
 </script>
 
@@ -133,6 +112,21 @@ onMounted(() => {
                   data-bs-dismiss="offcanvas"
                 >
                   About
+                </a>
+              </li>
+              <li class="nav-item" v-if="currentUser">
+                <a
+                  class="nav-link"
+                  :class="
+                    router.currentRoute.value.path.includes('dashboard')
+                      ? 'active'
+                      : ''
+                  "
+                  href="#"
+                  @click.prevent="navigateTo('dashboard')"
+                  data-bs-dismiss="offcanvas"
+                >
+                  Dashboard
                 </a>
               </li>
             </ul>
@@ -294,21 +288,6 @@ onMounted(() => {
         role="status"
         aria-hidden="true"
       ></div>
-      <!-- Dark Mode Toggle -->
-      <div
-        class="d-inline-block"
-        data-bs-toggle="tooltip"
-        data-bs-title="Dark Mode"
-      >
-        <div class="form-check form-switch">
-          <input
-            class="form-check-input"
-            type="checkbox"
-            id="dark-mode-switch"
-            @change="toggleDarkMode"
-          />
-        </div>
-      </div>
     </div>
   </div>
 </template>
