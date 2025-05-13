@@ -56,6 +56,12 @@ const {
               <b>{{ weather.humidity }}%</b>
             </p>
 
+            <!-- Today's Rainfall Section -->
+            <p class="text-muted mb-0">
+              <i class="bi bi-cloud-rain me-1"></i>
+              Rainfall: <b>{{ weather.todayRainfall }}mm</b>
+            </p>
+
             <!-- Weekly Rainfall Section (as a single value) -->
             <p
               class="text-muted mb-0"

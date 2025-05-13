@@ -1,23 +1,26 @@
 <template>
   <div class="container-fluid p-4 bg-body-tertiary rounded-5 shadow-sm">
-    <h1 class="mb-4">GrowSpace</h1>
-
     <div class="mb-5">
-      <p class="lead">
-        Thank you for visiting our website! We're dedicated to providing the
-        best user experience and services tailored to your needs. Explore our
-        features and discover how we can help you achieve your goals. Our team
-        is constantly working to improve and expand our offerings.
+      <h1 class="display-3 fw-bold mb-3 text-success">GrowSpace</h1>
+      <p class="lead mx-auto text-start">
+        <span class="fw-semibold text-success">GrowSpace</span> is your smart
+        companion for modern gardening and greenhouse management.<br /><br />
+        <b
+          >Track your plants, monitor your greenhouses, and get real-time
+          weather insights</b
+        >
+        – all in one place.<br />
+        Whether you're a beginner or an expert, our platform helps you nurture
+        your plants and achieve thriving results.<br /><br />
+        Explore our features, discover tips, and let GrowSpace help you grow
+        with confidence!
       </p>
     </div>
 
-    <div class="row g-4">
-      <div class="col-md-6">
-        <div class="card h-100 shadow-sm">
-          <div
-            class="position-relative"
-            style="height: 372.94px; overflow: hidden"
-          >
+    <div class="row g-4 justify-content-center">
+      <div class="col-md-6 col-lg-5">
+        <div class="card h-100 shadow border-0 rounded-4 overflow-hidden">
+          <div class="position-relative" style="height: 340px">
             <div
               v-if="!image1Loaded && !image1Failed"
               class="position-absolute top-0 start-0 w-100 h-100 placeholder-glow"
@@ -28,28 +31,37 @@
               v-if="image1Failed"
               class="position-absolute top-0 start-0 w-100 h-100 d-flex align-items-center justify-content-center bg-light"
             >
-              <span class="text-center p-4">Featured image</span>
+              <span class="text-center p-4">Plant care image</span>
             </div>
             <img
-              src="https://picsum.photos/800/600?random=1"
-              alt="Featured image"
+              src="@assets/images/katya-ross-4Vg6ez9jaec-unsplash.jpg"
+              alt="Healthy houseplants"
               class="position-absolute top-0 start-0 w-100 h-100 object-fit-cover"
+              style="filter: brightness(0.92) saturate(1.1)"
               @load="image1Loaded = true"
               @error="image1Failed = true"
             />
-          </div>
-          <div class="card-body">
-            <p class="card-text fw-bold">Discover our innovative solutions</p>
+            <div
+              class="position-absolute bottom-0 start-0 w-100 p-3 bg-gradient"
+              style="
+                background: linear-gradient(
+                  180deg,
+                  rgba(0, 0, 0, 0) 0,
+                  rgba(0, 0, 0, 0.5) 100%
+                );
+              "
+            >
+              <h5 class="text-white fw-bold mb-0">
+                Nurture your plants with smart tools
+              </h5>
+            </div>
           </div>
         </div>
       </div>
 
-      <div class="col-md-6">
-        <div class="card h-100 shadow-sm">
-          <div
-            class="position-relative"
-            style="height: 372.94px; overflow: hidden"
-          >
+      <div class="col-md-6 col-lg-5">
+        <div class="card h-100 shadow border-0 rounded-4 overflow-hidden">
+          <div class="position-relative" style="height: 340px">
             <div
               v-if="!image2Loaded && !image2Failed"
               class="position-absolute top-0 start-0 w-100 h-100 placeholder-glow"
@@ -60,18 +72,30 @@
               v-if="image2Failed"
               class="position-absolute top-0 start-0 w-100 h-100 d-flex align-items-center justify-content-center bg-light"
             >
-              <span class="text-center p-4">Services image</span>
+              <span class="text-center p-4">Greenhouse image</span>
             </div>
             <img
-              src="https://picsum.photos/800/600?random=2"
-              alt="Services image"
+              src="@assets/images/thomas-verbruggen-cVYLIzF6Gh0-unsplash.jpg"
+              alt="Greenhouse with plants"
               class="position-absolute top-0 start-0 w-100 h-100 object-fit-cover"
+              style="filter: brightness(0.92) saturate(1.1)"
               @load="image2Loaded = true"
               @error="image2Failed = true"
             />
-          </div>
-          <div class="card-body">
-            <p class="card-text fw-bold">Explore our premium services</p>
+            <div
+              class="position-absolute bottom-0 start-0 w-100 p-3 bg-gradient"
+              style="
+                background: linear-gradient(
+                  180deg,
+                  rgba(0, 0, 0, 0) 0,
+                  rgba(0, 0, 0, 0.5) 100%
+                );
+              "
+            >
+              <h5 class="text-white fw-bold mb-0">
+                Manage your greenhouse with ease
+              </h5>
+            </div>
           </div>
         </div>
       </div>

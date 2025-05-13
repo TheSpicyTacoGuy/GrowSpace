@@ -18,9 +18,9 @@ export function useDashboard() {
     condition: "",
     humidity: 0,
     updatedAt: "",
-    weeklyRainfall: 0,
+    todayRainfall: 0, // Only today's rainfall
     uvIndex: 0,
-    forecast: [] // Add this for the 7-day forecast
+    forecast: []
   });
 
   // Fetch dashboard stats
@@ -90,27 +90,58 @@ export function useDashboard() {
       
       // Map weather code to condition text
       const getWeatherCondition = (code) => {
-        // Simplified mapping based on WMO codes
-        if (code <= 1) return "Clear";
-        if (code <= 3) return "Partly Cloudy";
-        if (code <= 9) return "Foggy";
-        if (code <= 19) return "Drizzle";
-        if (code <= 29) return "Rainy";
-        if (code <= 39) return "Snowy";
-        return "Stormy";
+        // Mapping based on Open-Meteo/WMO weather codes
+        // See: https://open-meteo.com/en/docs#api_form
+        const codeMap = {
+          0: "Clear sky",
+          1: "Mainly clear",
+          2: "Partly cloudy",
+          3: "Overcast",
+          45: "Fog",
+          48: "Depositing rime fog",
+          51: "Light drizzle",
+          53: "Moderate drizzle",
+          55: "Dense drizzle",
+          56: "Light freezing drizzle",
+          57: "Dense freezing drizzle",
+          61: "Slight rain",
+          63: "Moderate rain",
+          65: "Heavy rain",
+          66: "Light freezing rain",
+          67: "Heavy freezing rain",
+          71: "Slight snow fall",
+          73: "Moderate snow fall",
+          75: "Heavy snow fall",
+          77: "Snow grains",
+          80: "Slight rain showers",
+          81: "Moderate rain showers",
+          82: "Violent rain showers",
+          85: "Slight snow showers",
+          86: "Heavy snow showers",
+          95: "Thunderstorm",
+          96: "Thunderstorm with slight hail",
+          99: "Thunderstorm with heavy hail"
+        };
+        return codeMap[code] || "Unknown";
       };
       
-      // Calculate weekly rainfall total from daily data
-      let weeklyRainfall = 0;
-      if (data.daily && Array.isArray(data.daily.precipitation_sum)) {
-        weeklyRainfall = data.daily.precipitation_sum
-          .slice(0, 7)
-          .reduce((sum, val) => sum + (val || 0), 0);
-      }
+      const precipitationArr = (data.daily && Array.isArray(data.daily.precipitation_sum))
+        ? data.daily.precipitation_sum
+        : [];
+
+      // Only today's rainfall
+      const todayRainfall = precipitationArr.length > 0 ? Math.round(precipitationArr[0] * 10) / 10 : 0;
       
       // Process 7-day forecast
       const forecast = [];
-      if (data.daily) {
+      if (
+        data.daily &&
+        Array.isArray(data.daily.time) &&
+        Array.isArray(data.daily.weather_code) &&
+        Array.isArray(data.daily.temperature_2m_max) &&
+        Array.isArray(data.daily.temperature_2m_min) &&
+        Array.isArray(data.daily.relative_humidity_2m_max)
+      ) {
         const days = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
         
         for (let i = 0; i < 7 && i < data.daily.time.length; i++) {
@@ -123,7 +154,7 @@ export function useDashboard() {
             condition: getWeatherCondition(data.daily.weather_code[i]),
             tempMax: Math.round(data.daily.temperature_2m_max[i]),
             tempMin: Math.round(data.daily.temperature_2m_min[i]),
-            rainfall: Math.round(data.daily.precipitation_sum[i] * 10) / 10,
+            rainfall: precipitationArr[i] !== undefined ? Math.round(precipitationArr[i] * 10) / 10 : 0,
             humidity: data.daily.relative_humidity_2m_max[i]
           });
         }
@@ -134,7 +165,7 @@ export function useDashboard() {
       weather.temperature = Math.round(data.current.temperature_2m);
       weather.condition = getWeatherCondition(data.current.weather_code);
       weather.humidity = data.current.relative_humidity_2m;
-      weather.weeklyRainfall = Math.round(weeklyRainfall * 10) / 10; // Round to 1 decimal place
+      weather.todayRainfall = todayRainfall; // <-- Only today's rainfall
       weather.forecast = forecast;
       weather.updatedAt = new Date().toLocaleTimeString();
     } catch (err) {
