@@ -223,6 +223,74 @@
               </div>
             </fieldset>
           </section>
+
+          <!-- Account Deletion Section -->
+          <section class="mt-5">
+            <hr />
+            <h5 class="text-danger mb-3">Danger Zone</h5>
+            <button
+              class="btn btn-outline-danger w-100"
+              @click="showDeleteModal = true"
+              type="button"
+            >
+              <i class="bi bi-trash me-1"></i> Delete My Account
+            </button>
+          </section>
+
+          <!-- Delete Account Modal -->
+          <div
+            class="modal fade"
+            tabindex="-1"
+            :class="{ show: showDeleteModal }"
+            style="display: block"
+            v-if="showDeleteModal"
+            aria-modal="true"
+            role="dialog"
+          >
+            <div class="modal-dialog">
+              <div class="modal-content">
+                <div class="modal-header">
+                  <h5 class="modal-title text-danger">Delete Account</h5>
+                  <button
+                    type="button"
+                    class="btn-close"
+                    @click="showDeleteModal = false"
+                    aria-label="Close"
+                  ></button>
+                </div>
+                <div class="modal-body">
+                  <p>
+                    Are you sure you want to
+                    <strong>permanently delete</strong> your account and all
+                    your data? This action cannot be undone.
+                  </p>
+                </div>
+                <div class="modal-footer">
+                  <button
+                    type="button"
+                    class="btn btn-secondary"
+                    @click="showDeleteModal = false"
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    type="button"
+                    class="btn btn-danger"
+                    :disabled="deletingAccount"
+                    @click="deleteAccount"
+                  >
+                    <span
+                      v-if="deletingAccount"
+                      class="spinner-border spinner-border-sm me-2"
+                      role="status"
+                      aria-hidden="true"
+                    ></span>
+                    Delete My Account
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
         </div>
       </div>
     </div>
@@ -233,6 +301,7 @@
 import { ref, watch } from "vue";
 import { useSettings } from "@composables/useSettings.js";
 import SettingsHeader from "./SettingsComponents/SettingsHeader.vue";
+import { useAccountDeletion } from "@composables/useAccountDeletion.js";
 
 defineOptions({
   name: "SettingsComponent",
@@ -250,6 +319,8 @@ const {
 
 const locationSuggestions = ref([]);
 const isLoadingSuggestions = ref(false);
+const { showDeleteModal, deletingAccount, deleteAccount } =
+  useAccountDeletion();
 
 watch(
   () => weatherLocation.value.manual,

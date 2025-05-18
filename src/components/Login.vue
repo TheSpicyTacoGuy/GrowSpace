@@ -15,6 +15,14 @@
     <div
       class="container d-flex flex-column align-items-center justify-content-center login-content"
     >
+      <button
+        class="btn btn-secondary position-absolute top-0 start-0 m-3"
+        @click="() => $router.back()"
+        type="button"
+      >
+        <i class="bi bi-arrow-left"></i>
+        <span class="d-none d-md-inline"> Back</span>
+      </button>
       <div class="card shadow p-4" style="max-width: 400px; width: 100%">
         <div
           class="logo-container d-flex flex-column align-items-center justify-content-center mb-4"
@@ -96,11 +104,9 @@ const handleFacebookLogin = async () => {
 .login-bg-container {
   position: fixed;
   inset: 0;
-  z-index: -1;
   width: 100vw;
   height: 100vh;
   overflow: hidden;
-  pointer-events: none;
 }
 .login-bg-image {
   width: 100vw;
@@ -117,7 +123,6 @@ const handleFacebookLogin = async () => {
   position: relative;
   z-index: 1;
   min-height: 75vh;
-  padding-top: 80px;
 }
 .card {
   border-radius: 1.25rem;
