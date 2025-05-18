@@ -30,6 +30,7 @@
                 id="email"
                 v-model="email"
                 type="email"
+                autocomplete="email"
                 class="form-control"
                 disabled
                 aria-readonly="true"
@@ -222,6 +223,262 @@
                 </div>
               </div>
             </fieldset>
+          </section>
+
+          <!-- Help & FAQ Section -->
+          <section class="mt-5" aria-labelledby="helpSectionTitle">
+            <hr />
+            <h5 id="helpSectionTitle" class="mb-3">Help & How-To Guide</h5>
+
+            <div class="accordion" id="helpAccordion">
+              <!-- Dashboard Overview -->
+              <div class="accordion-item">
+                <h2 class="accordion-header" id="headingDashboard">
+                  <button
+                    class="accordion-button collapsed"
+                    type="button"
+                    data-bs-toggle="collapse"
+                    data-bs-target="#collapseDashboard"
+                    aria-expanded="false"
+                    aria-controls="collapseDashboard"
+                  >
+                    Dashboard Overview
+                  </button>
+                </h2>
+                <div
+                  id="collapseDashboard"
+                  class="accordion-collapse collapse"
+                  aria-labelledby="headingDashboard"
+                  data-bs-parent="#helpAccordion"
+                >
+                  <div class="accordion-body">
+                    <p>
+                      The dashboard is your main hub. Use the sidebar or bottom
+                      navigation to access your plants, greenhouses, tips forum,
+                      and settings.
+                    </p>
+                    <ul>
+                      <li>
+                        <strong>Plants:</strong> Track, update, and care for
+                        your plants. Add new plants, record
+                        watering/fertilising, and view care history.
+                      </li>
+                      <li>
+                        <strong>Greenhouses:</strong> Organize plants into
+                        greenhouses, monitor their status, and manage greenhouse
+                        details.
+                      </li>
+                      <li>
+                        <strong>Tips Forum:</strong> Share and discover plant
+                        care tips. Like, comment, and discuss with the
+                        community.
+                      </li>
+                      <li>
+                        <strong>Weather Widget:</strong> See local weather for
+                        your garden or greenhouse.
+                      </li>
+                    </ul>
+                  </div>
+                </div>
+              </div>
+
+              <!-- Plants Help -->
+              <div class="accordion-item">
+                <h2 class="accordion-header" id="headingPlants">
+                  <button
+                    class="accordion-button collapsed"
+                    type="button"
+                    data-bs-toggle="collapse"
+                    data-bs-target="#collapsePlants"
+                    aria-expanded="false"
+                    aria-controls="collapsePlants"
+                  >
+                    Managing Plants
+                  </button>
+                </h2>
+                <div
+                  id="collapsePlants"
+                  class="accordion-collapse collapse"
+                  aria-labelledby="headingPlants"
+                  data-bs-parent="#helpAccordion"
+                >
+                  <div class="accordion-body">
+                    <ul>
+                      <li>
+                        Add a plant with the
+                        <button type="button" class="btn btn-sm btn-secondary">
+                          <i class="bi bi-plus-lg"></i>
+                        </button>
+                        button.
+                      </li>
+                      <li>
+                        Record care actions (watering, fertilising, etc.)
+                        directly from the plant detail page.
+                      </li>
+                      <li>Edit or delete plants as needed.</li>
+                      <li>
+                        Filter and search your plants by name or greenhouse.
+                      </li>
+                    </ul>
+                  </div>
+                </div>
+              </div>
+
+              <!-- Greenhouses Help -->
+              <div class="accordion-item">
+                <h2 class="accordion-header" id="headingGreenhouses">
+                  <button
+                    class="accordion-button collapsed"
+                    type="button"
+                    data-bs-toggle="collapse"
+                    data-bs-target="#collapseGreenhouses"
+                    aria-expanded="false"
+                    aria-controls="collapseGreenhouses"
+                  >
+                    Managing Greenhouses
+                  </button>
+                </h2>
+                <div
+                  id="collapseGreenhouses"
+                  class="accordion-collapse collapse"
+                  aria-labelledby="headingGreenhouses"
+                  data-bs-parent="#helpAccordion"
+                >
+                  <div class="accordion-body">
+                    <ul>
+                      <li>
+                        Create a greenhouse to group your plants with the
+                        <button type="button" class="btn btn-sm btn-secondary">
+                          <i class="bi bi-plus-lg"></i>
+                        </button>
+                        button.
+                      </li>
+                      <li>Add or remove plants from greenhouses.</li>
+                      <li>
+                        Edit greenhouse details and view all plants inside.
+                      </li>
+                      <li>
+                        Delete a greenhouse (plants remain, but are unassigned).
+                      </li>
+                    </ul>
+                  </div>
+                </div>
+              </div>
+
+              <!-- Tips Forum Help -->
+              <div class="accordion-item">
+                <h2 class="accordion-header" id="headingTips">
+                  <button
+                    class="accordion-button collapsed"
+                    type="button"
+                    data-bs-toggle="collapse"
+                    data-bs-target="#collapseTips"
+                    aria-expanded="false"
+                    aria-controls="collapseTips"
+                  >
+                    Tips Forum
+                  </button>
+                </h2>
+                <div
+                  id="collapseTips"
+                  class="accordion-collapse collapse"
+                  aria-labelledby="headingTips"
+                  data-bs-parent="#helpAccordion"
+                >
+                  <div class="accordion-body">
+                    <ul>
+                      <li>
+                        Browse, like, and comment on plant care tips from the
+                        community.
+                      </li>
+                      <li>Share your own tips to help others.</li>
+                      <li>Edit or delete your own tips and comments.</li>
+                      <li>Admins can moderate all content.</li>
+                    </ul>
+                  </div>
+                </div>
+              </div>
+
+              <!-- Weather Widget Help -->
+              <div class="accordion-item">
+                <h2 class="accordion-header" id="headingWeather">
+                  <button
+                    class="accordion-button collapsed"
+                    type="button"
+                    data-bs-toggle="collapse"
+                    data-bs-target="#collapseWeather"
+                    aria-expanded="false"
+                    aria-controls="collapseWeather"
+                  >
+                    Weather Widget
+                  </button>
+                </h2>
+                <div
+                  id="collapseWeather"
+                  class="accordion-collapse collapse"
+                  aria-labelledby="headingWeather"
+                  data-bs-parent="#helpAccordion"
+                >
+                  <div class="accordion-body">
+                    <ul>
+                      <li>Shows current weather for your selected location.</li>
+                      <li>
+                        Choose between using your device's location or entering
+                        a city manually.
+                      </li>
+                      <li>Weather updates automatically every 30 minutes.</li>
+                    </ul>
+                  </div>
+                </div>
+              </div>
+
+              <!-- Account Management Help -->
+              <div class="accordion-item">
+                <h2 class="accordion-header" id="headingAccount">
+                  <button
+                    class="accordion-button collapsed"
+                    type="button"
+                    data-bs-toggle="collapse"
+                    data-bs-target="#collapseAccount"
+                    aria-expanded="false"
+                    aria-controls="collapseAccount"
+                  >
+                    Settings Page
+                  </button>
+                </h2>
+                <div
+                  id="collapseAccount"
+                  class="accordion-collapse collapse"
+                  aria-labelledby="headingAccount"
+                  data-bs-parent="#helpAccordion"
+                >
+                  <div class="accordion-body">
+                    <ul>
+                      <li>Update your display name and theme preferences.</li>
+                      <li>Set your preferred weather location.</li>
+                      <li>
+                        <span class="text-danger fw-bold"
+                          >Delete your account</span
+                        >
+                        and all your data from the Danger Zone at the bottom of
+                        this page.
+                      </li>
+                    </ul>
+                    <p class="text-danger">
+                      <strong>Warning:</strong> Account deletion cannot be
+                      undone!
+                    </p>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <div class="mt-3">
+              <p class="small text-muted">
+                Need more help? Contact support at
+                <a href="mailto:support@example.com">support@example.com</a>
+              </p>
+            </div>
           </section>
 
           <!-- Account Deletion Section -->

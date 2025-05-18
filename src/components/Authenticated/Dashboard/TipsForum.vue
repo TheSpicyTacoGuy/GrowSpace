@@ -1,7 +1,10 @@
 <template>
   <div class="container py-4">
     <TipsHeader />
-    <form @submit.prevent="submitTip" class="mb-4 card card-body shadow-sm">
+    <form
+      @submit.prevent="submitTip"
+      class="mb-4 card card-body shadow-sm border-0"
+    >
       <div class="mb-3">
         <label for="tip" class="form-label">Share a tip:</label>
         <textarea
@@ -27,9 +30,16 @@
       <div
         v-for="tip in tipsSorted"
         :key="tip.id"
-        class="col-12 col-md-12 col-lg-6 col-xl-4"
+        class="col-12 col-md-12 col-lg-6 col-xl-6 col-xxl-4"
+        :class="{
+          'col-12 col-md-6 col-lg-4': tipsSorted.length > 1,
+          'col-12 col-md-6 col-lg-3': tipsSorted.length > 2,
+        }"
+        :style="{
+          maxWidth: tipsSorted.length > 1 ? '100%' : 'none',
+        }"
       >
-        <div class="card h-100 shadow border-0 tip-card p-2 p-sm-3">
+        <div class="card h-100 shadow border-0 tip-card p-2 p-sm-3 hover-card">
           <div class="card-body d-flex flex-column">
             <div v-if="editingTipId === tip.id">
               <textarea
@@ -81,6 +91,15 @@
                       : tip.content
                   }}
                 </router-link>
+
+                <button
+                  class="btn btn-link text-decoration-none"
+                  @click="
+                    $router.push({ name: 'tip-detail', params: { id: tip.id } })
+                  "
+                >
+                  Read more <i class="bi bi-arrow-right"></i>
+                </button>
               </div>
             </div>
             <div
@@ -183,13 +202,13 @@
                       class="ms-auto"
                     >
                       <button
-                        class="btn btn-outline-warning btn-xs me-1"
+                        class="btn btn-outline-warning btn-xs me-1 border-0"
                         @click="startEditComment(comment)"
                       >
                         <i class="bi bi-pencil"></i>
                       </button>
                       <button
-                        class="btn btn-outline-danger btn-xs"
+                        class="btn btn-outline-danger btn-xs border-0"
                         @click="deleteComment(tip.id, comment)"
                       >
                         <i class="bi bi-trash"></i>
@@ -199,7 +218,7 @@
                   <div class="d-flex align-items-center">
                     <span class="me-2">{{ comment.content }}</span>
                     <button
-                      class="btn btn-outline-primary btn-xs py-0 px-2"
+                      class="btn btn-outline-primary text-primary btn-xs py-0 px-2"
                       style="border: none"
                       @click="likeComment(tip.id, comment)"
                       :disabled="!canLikeComment(comment)"
@@ -215,12 +234,14 @@
                             auth.currentUser?.uid
                           )
                             ? 'bi-hand-thumbs-up-fill text-primary'
-                            : 'bi-hand-thumbs-up',
+                            : 'bi-hand-thumbs-up text-primary',
                         ]"
                       ></i>
                       <span class="ms-1">{{ comment.likes || 0 }}</span>
                     </button>
                   </div>
+
+                  <hr />
                 </div>
               </div>
               <!-- Comment Form -->

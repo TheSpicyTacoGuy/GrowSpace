@@ -107,7 +107,7 @@ onMounted(() => {
               </li>
               <li class="nav-item mb-2" v-if="currentUser">
                 <a
-                  class="nav-link dashboard-btn py-2 px-3 d-flex align-items-center"
+                  class="nav-link dashboard-btn py-2 px-3 d-flex align-items-center mt-2"
                   :class="[
                     router.currentRoute.value.path.includes('dashboard')
                       ? 'active'
