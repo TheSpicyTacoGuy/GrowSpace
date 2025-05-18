@@ -19,6 +19,7 @@ const tips = ref([]);
 const newTip = ref("");
 const editingTipId = ref(null);
 const editTipContent = ref("");
+const userRole = ref("user"); // Default role
 
 // Comments state
 const comments = ref({});
@@ -60,6 +61,7 @@ const submitTip = async () => {
     author:
       auth.currentUser?.displayName || auth.currentUser?.email || "Anonymous",
     authorId: auth.currentUser?.uid || null,
+    authorRole: userRole.value || "user",
     createdAt: serverTimestamp(),
     likes: 0,
     likedBy: [],
@@ -82,6 +84,7 @@ const submitComment = async (tipId) => {
     content,
     author: auth.currentUser?.displayName || auth.currentUser?.email || "Anonymous",
     authorId: auth.currentUser?.uid || null,
+    authorRole: userRole.value || "user",
     createdAt: serverTimestamp(),
     likes: 0,
     likedBy: [],
@@ -217,6 +220,7 @@ const deleteComment = async (tipId, comment) => {
 };
 
 export default function useTipsForum() {
+
   onMounted(fetchTips);
   return {
     tips,
@@ -249,6 +253,7 @@ export default function useTipsForum() {
     comments,
     newComment,
     submitComment,
+    fetchComments,
     likeComment,
     canLikeComment,
     editingCommentId,

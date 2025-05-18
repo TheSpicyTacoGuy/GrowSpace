@@ -14,6 +14,8 @@ import PlantsComponent from "@components/Authenticated/Dashboard/Plants.vue";
 import PlantDetailComponent from "@components/Authenticated/Dashboard/PlantDetail.vue";
 import TipsForumComponent from "@components/Authenticated/Dashboard/TipsForum.vue";
 import SettingsComponent from "@components/Authenticated/Dashboard/Settings.vue";
+import TipDetail from "@components/Authenticated/Dashboard/TipDetail.vue";
+import Login from "@components/Login.vue";
 import { ref } from "vue";
 
 const routes = [
@@ -141,6 +143,14 @@ const routes = [
         },
       },
       {
+        path: "tips/:id",
+        name: "tip-detail",
+        components: {
+          dashboard: TipDetail,
+        },
+        meta: { requiresAuth: true },
+      },
+      {
         path: "/dashboard/:pathMatch(.*)*",
         name: "dashboard-not-found",
         components: {
@@ -152,6 +162,12 @@ const routes = [
         },
       },
     ],
+  },
+  {
+    path: "/login",
+    name: "login",
+    component: Login,
+    meta: { requiresAuth: false },
   },
   {
     path: "/:pathMatch(.*)*",
@@ -201,11 +217,7 @@ window.isAuthLoading = isAuthLoading;
 
 router.beforeEach(async (to) => {
   const auth = getAuth();
-
-  // Set loading state to true
   isAuthLoading.value = true;
-
-  // Create a promise that resolves when Firebase auth is initialized
   const getCurrentUser = () => {
     return new Promise((resolve) => {
       const unsubscribe = auth.onAuthStateChanged((user) => {
@@ -216,26 +228,19 @@ router.beforeEach(async (to) => {
   };
 
   try {
-    // Wait for Firebase auth to initialize
     const user = await getCurrentUser();
-
-    // Dashboard routes require authentication
     if (to.matched[0]?.name === "dashboard-main") {
-      // If the user is not authenticated, redirect to the login page
       if (!user) {
         showToast(
           "You must be logged in to access this page.",
           "warning",
           5000
         );
-        return { path: "/home" };
+        return { path: "/login" }; // Redirect to login page
       }
     }
-
-    // User is authenticated or route doesn't require auth, allow access
     return true;
   } finally {
-    // Always set loading state to false when auth check completes
     isAuthLoading.value = false;
   }
 });

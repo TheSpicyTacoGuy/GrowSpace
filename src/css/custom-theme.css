@@ -605,3 +605,101 @@ a:hover {
 .scrollbar::-webkit-scrollbar-button {
   background: var(--bs-light);
 }
+
+/* Improved user dropdown styling */
+.user-dropdown {
+  min-width: 280px;
+  border-radius: 12px;
+  border: none;
+  overflow: hidden;
+  padding: 0;
+}
+
+.user-dropdown .dropdown-item {
+  padding: 0.6rem 1.5rem;
+  transition: background-color 0.15s ease;
+}
+
+.user-dropdown .dropdown-item:hover {
+  background-color: rgba(var(--bs-primary-rgb), 0.1);
+}
+
+.dropdown-user-details {
+  background-color: rgba(var(--bs-primary-rgb), 0.05);
+}
+
+.user-info {
+  max-width: 180px;
+  overflow: hidden;
+}
+
+/* Dashboard button styling */
+.dashboard-btn {
+  border-radius: 8px;
+  background-color: rgba(var(--bs-primary-rgb), 0.1);
+  font-weight: 500;
+  transition: all 0.2s ease;
+  color: var(--bs-primary);
+  border: 1px solid transparent;
+}
+
+.dashboard-btn:hover {
+  background-color: rgba(var(--bs-primary-rgb), 0.15);
+  transform: translateY(-1px);
+  color: var(--bs-primary);
+}
+
+.dashboard-btn.active {
+  background-color: var(--bs-primary);
+  color: white;
+  box-shadow: 0 2px 5px rgba(var(--bs-primary-rgb), 0.3);
+}
+
+/* Your existing styles */
+.login-btn {
+  border-radius: 8px;
+  padding: 0.5rem 1.2rem;
+  font-weight: 500;
+  transition: all 0.2s ease;
+  box-shadow: 0 2px 6px rgba(var(--bs-primary-rgb), 0.2);
+}
+
+
+.login-btn:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 8px rgba(var(--bs-primary-rgb), 0.3);
+}
+
+.login-btn:active {
+  transform: translateY(0);
+  box-shadow: 0 1px 3px rgba(var(--bs-primary-rgb), 0.2);
+}
+
+/* Your existing styles */
+.user-dropdown {
+  min-width: 280px;
+  border-radius: 12px;
+  border: none;
+  overflow: hidden;
+  padding: 0;
+}
+
+.tip-card {
+  border-radius: 1rem;
+  transition: box-shadow 0.2s;
+}
+.tip-card:hover {
+  box-shadow: 0 0.5rem 1.5rem rgba(0, 123, 255, 0.08);
+}
+.tip-content {
+  font-size: 1.1rem;
+  margin-bottom: 0.5rem;
+  min-height: 2.5em;
+}
+.badge.bg-danger {
+  font-size: 0.85em;
+  vertical-align: middle;
+  padding: 0.35em 0.6em;
+  display: inline-flex;
+  align-items: center;
+}

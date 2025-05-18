@@ -57,7 +57,7 @@ const clearSearch = () => {
           <div class="btn-group">
             <button
               type="button"
-              class="btn btn-success"
+              class="btn btn-secondary"
               v-tooltip
               title="Add Plant"
               @click="openAddModal"
@@ -76,28 +76,43 @@ const clearSearch = () => {
             type="text"
             class="form-control"
             placeholder="Search plants..."
+            id="plantSearchInput"
+            name="plantSearchInput"
             v-model="searchTerm"
             @input="handleSearch"
+            aria-label="Search plants"
           />
           <button
-            class="btn"
+            class="btn btn-outline-secondary"
             type="button"
             @click="clearSearch"
             v-if="searchTerm"
+            aria-label="Clear search"
           >
             <i class="bi bi-x-lg"></i>
           </button>
-          <button class="btn bg-body" type="button" @click="handleSearch">
+          <button
+            class="btn btn-outline-secondary"
+            type="button"
+            @click="handleSearch"
+            aria-label="Search"
+          >
             <i class="bi bi-search"></i>
           </button>
         </div>
       </div>
       <!-- Greenhouse filter -->
       <div class="col-12 col-md-6">
+        <label for="greenhouseFilter" class="form-label visually-hidden">
+          Filter by greenhouse
+        </label>
         <select
           class="form-select"
+          id="greenhouseFilter"
+          name="greenhouseFilter"
           v-model="selected"
           @change="onFilterByGreenhouse(selected)"
+          aria-label="Filter by greenhouse"
         >
           <option :value="null">All Greenhouses</option>
           <option

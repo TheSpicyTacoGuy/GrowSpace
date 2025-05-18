@@ -6,9 +6,34 @@ import IconHouses from "@components/icons/IconHouses.vue";
 import IconSeedling from "@components/icons/IconSeedling.vue";
 import IconSettings from "@components/icons/IconSettings.vue";
 import IconTips from "@components/icons/IconTips.vue";
+import { ref } from "vue";
 
 const { matchedRoutes, breadcrumbLabels, router } = useBreadcrumbs();
 const { checkActiveRoute, isActive, navigateTo } = useNavigation();
+
+// State to track which button is being long-pressed
+const pressedButton = ref(null);
+const longPressTimeout = ref(null);
+
+// Long press handlers
+const startLongPress = (buttonName) => {
+  clearTimeout(longPressTimeout.value);
+  longPressTimeout.value = setTimeout(() => {
+    pressedButton.value = buttonName;
+  }, 500); // 500ms hold to trigger
+};
+
+const endLongPress = () => {
+  clearTimeout(longPressTimeout.value);
+  pressedButton.value = null;
+};
+
+// Handle navigation with the long press logic
+const handleNavClick = (buttonName) => {
+  clearTimeout(longPressTimeout.value);
+  pressedButton.value = null;
+  navigateTo(buttonName);
+};
 </script>
 
 <template>
@@ -156,71 +181,135 @@ const { checkActiveRoute, isActive, navigateTo } = useNavigation();
         >
           <div class="container-fluid">
             <div class="d-flex justify-content-around w-100">
-              <button
-                class="btn text-body d-flex flex-column align-items-center"
-                :class="isActive('dashboard')"
-                @click.prevent="navigateTo('dashboard')"
-                v-tooltip
-                title="Dashboard"
+              <div
+                class="position-relative d-flex flex-column align-items-center"
               >
-                <IconDash
-                  :class="{
-                    'text-primary': checkActiveRoute('dashboard'),
-                  }"
-                />
-              </button>
-              <button
-                class="btn text-body btn d-flex flex-column align-items-center"
-                :class="isActive('greenhouses')"
-                @click.prevent="navigateTo('greenhouses')"
-                v-tooltip
-                title="Greenhouses"
+                <div
+                  v-if="pressedButton === 'dashboard'"
+                  class="position-absolute label-popup bg-primary text-white px-2 py-1 rounded-pill"
+                  style="bottom: 100%; margin-bottom: 5px; white-space: nowrap"
+                >
+                  Dashboard
+                </div>
+                <button
+                  class="btn text-body d-flex flex-column align-items-center"
+                  :class="isActive('dashboard')"
+                  @click="handleNavClick('dashboard')"
+                  @touchstart="startLongPress('dashboard')"
+                  @touchend="endLongPress"
+                  @touchcancel="endLongPress"
+                >
+                  <IconDash
+                    :class="{
+                      'text-primary': checkActiveRoute('dashboard'),
+                    }"
+                  />
+                </button>
+              </div>
+
+              <div
+                class="position-relative d-flex flex-column align-items-center"
               >
-                <IconHouses
-                  :class="{
-                    'text-primary': checkActiveRoute('greenhouses'),
-                  }"
-                />
-              </button>
-              <button
-                class="btn text-body btn d-flex flex-column align-items-center"
-                :class="isActive('plants')"
-                @click.prevent="navigateTo('plants')"
-                v-tooltip
-                title="Plants"
+                <div
+                  v-if="pressedButton === 'greenhouses'"
+                  class="position-absolute label-popup bg-primary text-white px-2 py-1 rounded-pill"
+                  style="bottom: 100%; margin-bottom: 5px; white-space: nowrap"
+                >
+                  Greenhouses
+                </div>
+                <button
+                  class="btn text-body btn d-flex flex-column align-items-center"
+                  :class="isActive('greenhouses')"
+                  @click="handleNavClick('greenhouses')"
+                  @touchstart="startLongPress('greenhouses')"
+                  @touchend="endLongPress"
+                  @touchcancel="endLongPress"
+                >
+                  <IconHouses
+                    :class="{
+                      'text-primary': checkActiveRoute('greenhouses'),
+                    }"
+                  />
+                </button>
+              </div>
+
+              <div
+                class="position-relative d-flex flex-column align-items-center"
               >
-                <IconSeedling
-                  :class="{
-                    'text-primary': checkActiveRoute('plants'),
-                  }"
-                />
-              </button>
-              <button
-                class="btn text-body btn d-flex flex-column align-items-center"
-                :class="isActive('tips')"
-                @click.prevent="navigateTo('tips')"
-                v-tooltip
-                title="Tips"
+                <div
+                  v-if="pressedButton === 'plants'"
+                  class="position-absolute label-popup bg-primary text-white px-2 py-1 rounded-pill"
+                  style="bottom: 100%; margin-bottom: 5px; white-space: nowrap"
+                >
+                  Plants
+                </div>
+                <button
+                  class="btn text-body btn d-flex flex-column align-items-center"
+                  :class="isActive('plants')"
+                  @click="handleNavClick('plants')"
+                  @touchstart="startLongPress('plants')"
+                  @touchend="endLongPress"
+                  @touchcancel="endLongPress"
+                >
+                  <IconSeedling
+                    :class="{
+                      'text-primary': checkActiveRoute('plants'),
+                    }"
+                  />
+                </button>
+              </div>
+
+              <div
+                class="position-relative d-flex flex-column align-items-center"
               >
-                <IconTips
-                  :class="{
-                    'text-primary': checkActiveRoute('tips'),
-                  }"
-                />
-              </button>
-              <button
-                class="btn text-body btn d-flex flex-column align-items-center"
-                :class="isActive('settings')"
-                @click.prevent="navigateTo('settings')"
-                v-tooltip
-                title="Settings"
+                <div
+                  v-if="pressedButton === 'tips'"
+                  class="position-absolute label-popup bg-primary text-white px-2 py-1 rounded-pill"
+                  style="bottom: 100%; margin-bottom: 5px; white-space: nowrap"
+                >
+                  Tips
+                </div>
+                <button
+                  class="btn text-body btn d-flex flex-column align-items-center"
+                  :class="isActive('tips')"
+                  @click="handleNavClick('tips')"
+                  @touchstart="startLongPress('tips')"
+                  @touchend="endLongPress"
+                  @touchcancel="endLongPress"
+                >
+                  <IconTips
+                    :class="{
+                      'text-primary': checkActiveRoute('tips'),
+                    }"
+                  />
+                </button>
+              </div>
+
+              <div
+                class="position-relative d-flex flex-column align-items-center"
               >
-                <IconSettings
-                  :class="{
-                    'text-primary': checkActiveRoute('settings'),
-                  }"
-                />
-              </button>
+                <div
+                  v-if="pressedButton === 'settings'"
+                  class="position-absolute label-popup bg-primary text-white px-2 py-1 rounded-pill"
+                  style="bottom: 100%; margin-bottom: 5px; white-space: nowrap"
+                >
+                  Settings
+                </div>
+                <button
+                  class="btn text-body btn d-flex flex-column align-items-center"
+                  :class="isActive('settings')"
+                  @click="handleNavClick('settings')"
+                  @touchstart="startLongPress('settings')"
+                  @touchend="endLongPress"
+                  @touchcancel="endLongPress"
+                >
+                  <IconSettings
+                    :class="{
+                      'text-primary': checkActiveRoute('settings'),
+                    }"
+                  />
+                </button>
+              </div>
             </div>
           </div>
         </nav>
@@ -241,3 +330,26 @@ const { checkActiveRoute, isActive, navigateTo } = useNavigation();
     </div>
   </div>
 </template>
+
+<style scoped>
+.label-popup {
+  transition:
+    opacity 0.2s,
+    transform 0.2s;
+  animation: popIn 0.3s forwards;
+  font-size: 0.85rem;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+  z-index: 1000;
+}
+
+@keyframes popIn {
+  0% {
+    opacity: 0;
+    transform: translateY(5px) scale(0.95);
+  }
+  100% {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+</style>

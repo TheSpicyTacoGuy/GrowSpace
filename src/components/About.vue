@@ -106,6 +106,10 @@
 </template>
 
 <script>
+// Import images directly for reliable bundling
+import mountainImage from "@assets/images/mountain.jpg";
+import farmImage from "@assets/images/farm.jpg";
+
 export default {
   name: "AboutComponent",
   data() {
@@ -113,6 +117,11 @@ export default {
       firstName: "",
       lastName: "",
       selectedImage: "",
+      // Store image paths in data to access them
+      imagePaths: {
+        mountain: mountainImage,
+        farm: farmImage,
+      },
     };
   },
   computed: {
@@ -130,18 +139,14 @@ export default {
       return "Welcome!";
     },
     getImagePath() {
-      if (this.selectedImage === "mountain") {
-        return "assets/images/mountain.jpg";
-      } else if (this.selectedImage === "farm") {
-        return "assets/images/farm.jpg";
-      }
-      return "";
+      // Use the imported image paths
+      return this.selectedImage ? this.imagePaths[this.selectedImage] : "";
     },
     imageDescription() {
       if (this.selectedImage === "mountain") {
         return "Mountain environments inspire sustainable designs with natural cooling and efficient space utilization.";
       } else if (this.selectedImage === "farm") {
-        return "farm-inspired greenhouses often feature humidity control systems and natural ventilation patterns.";
+        return "Farm-inspired greenhouses often feature humidity control systems and natural ventilation patterns.";
       }
       return "";
     },

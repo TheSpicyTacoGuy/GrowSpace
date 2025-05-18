@@ -14,8 +14,16 @@ const plant = ref(null);
 const loading = ref(true);
 const error = ref(null);
 const editing = ref(false);
-const editedPlant = ref({});
+const editedPlant = ref({
+  name: "",
+  type: "",
+  status: "",
+  wateringSchedule: "",
+  notes: "",
+  greenhouseId: null,
+});
 const greenhouses = ref([]);
+const validationErrors = ref({});
 
 // Get plant-related functions from usePlants
 const { getPlantById, recordCareEvent, updatePlantDetails } = usePlants();
@@ -95,22 +103,22 @@ const startEditing = () => {
 
 // Add validation function
 const validatePlant = (plant) => {
-  const errors = [];
+  const errors = {};
 
   if (!plant.name || plant.name.trim() === "") {
-    errors.push("Name is required");
+    errors.name = "Name is required";
   }
 
   if (!plant.type || plant.type.trim() === "") {
-    errors.push("Type is required");
+    errors.type = "Type is required";
   }
 
   if (!plant.status) {
-    errors.push("Status is required");
+    errors.status = "Status is required";
   }
 
   if (!plant.wateringSchedule || plant.wateringSchedule.trim() === "") {
-    errors.push("Watering schedule is required");
+    errors.wateringSchedule = "Watering schedule is required";
   }
 
   return errors;
@@ -120,11 +128,13 @@ const validatePlant = (plant) => {
 const savePlant = async () => {
   try {
     // Validate form fields
-    const validationErrors = validatePlant(editedPlant.value);
+    validationErrors.value = validatePlant(editedPlant.value);
 
-    if (validationErrors.length > 0) {
+    if (Object.keys(validationErrors.value).length > 0) {
       showToast(
-        `Please fix the following: ${validationErrors.join(", ")}`,
+        `Please fix the following: ${Object.values(validationErrors.value).join(
+          ", "
+        )}`,
         "error"
       );
       return;
@@ -401,28 +411,44 @@ onMounted(() => {
               <h5 class="card-title">Edit Plant Details</h5>
               <form @submit.prevent="savePlant">
                 <div class="mb-3">
-                  <label for="plantName" class="form-label"
-                    >Name <span class="text-danger">*</span></label
-                  >
+                  <label for="plantName" class="form-label">Plant Name</label>
                   <input
+                    id="plantName"
+                    v-model="editedPlant.name"
                     type="text"
                     class="form-control"
-                    id="plantName"
-                    v-model.trim="editedPlant.name"
+                    :aria-invalid="!!validationErrors.name"
+                    aria-describedby="plantNameError"
                     required
                   />
+                  <div
+                    v-if="validationErrors.name"
+                    id="plantNameError"
+                    class="text-danger"
+                    role="alert"
+                  >
+                    {{ validationErrors.name }}
+                  </div>
                 </div>
                 <div class="mb-3">
-                  <label for="plantType" class="form-label"
-                    >Type <span class="text-danger">*</span></label
-                  >
+                  <label for="plantType" class="form-label">Type</label>
                   <input
+                    id="plantType"
+                    v-model="editedPlant.type"
                     type="text"
                     class="form-control"
-                    id="plantType"
-                    v-model.trim="editedPlant.type"
+                    :aria-invalid="!!validationErrors.type"
+                    aria-describedby="plantTypeError"
                     required
                   />
+                  <div
+                    v-if="validationErrors.type"
+                    id="plantTypeError"
+                    class="text-danger"
+                    role="alert"
+                  >
+                    {{ validationErrors.type }}
+                  </div>
                 </div>
                 <div class="mb-3">
                   <label for="plantStatus" class="form-label"

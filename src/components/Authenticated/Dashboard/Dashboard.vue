@@ -14,6 +14,7 @@ const {
   greenhouseCount,
   plantCount,
   weather,
+  weatherError,
   fetchDashboardStats,
   fetchWeatherData,
 } = useDashboard();
@@ -79,7 +80,7 @@ defineOptions({
 
       <!-- Weather Card -->
       <div class="col-md-12 mb-4">
-        <WeatherCard :weather="weather" />
+        <WeatherCard :weather="weather" :weatherError="weatherError" />
       </div>
     </div>
   </div>

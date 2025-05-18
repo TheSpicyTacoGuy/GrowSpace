@@ -39,7 +39,7 @@ const clearSearch = () => {
           <div class="btn-group">
             <button
               type="button"
-              class="btn btn-success"
+              class="btn btn-secondary"
               v-tooltip
               title="Add Greenhouse"
               @click="openAddModal"
@@ -58,18 +58,27 @@ const clearSearch = () => {
             type="text"
             class="form-control"
             placeholder="Search greenhouses..."
+            id="greenhouseSearchInput"
+            name="greenhouseSearchInput"
             v-model="searchTerm"
             @input="handleSearch"
+            aria-label="Search greenhouses"
           />
           <button
-            class="btn"
+            class="btn btn-outline-secondary"
             type="button"
             @click="clearSearch"
             v-if="searchTerm"
+            aria-label="Clear search"
           >
             <i class="bi bi-x-lg"></i>
           </button>
-          <button class="btn bg-body" type="button" @click="handleSearch">
+          <button
+            class="btn btn-outline-secondary"
+            type="button"
+            @click="handleSearch"
+            aria-label="Search"
+          >
             <i class="bi bi-search"></i>
           </button>
         </div>

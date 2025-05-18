@@ -10,52 +10,85 @@
           class="form-control"
           rows="2"
           required
+          aria-label="Share a tip"
         ></textarea>
       </div>
-      <button class="btn btn-success" :disabled="!newTip.trim()">
+      <button
+        class="btn btn-success w-100 d-block d-sm-inline-block mt-2 mt-sm-0"
+        :disabled="!newTip.trim()"
+      >
         <i class="bi bi-send me-1"></i>Post Tip
       </button>
     </form>
     <div v-if="tips.length === 0" class="alert alert-info">
       No tips yet. Be the first to share!
     </div>
-    <div class="row g-3">
+    <div class="row g-3 g-md-4">
       <div
         v-for="tip in tipsSorted"
         :key="tip.id"
-        class="col-12 col-md-6 col-lg-4"
+        class="col-12 col-md-12 col-lg-6 col-xl-4"
       >
-        <div class="card h-100 shadow-sm border-0">
+        <div class="card h-100 shadow border-0 tip-card p-2 p-sm-3">
           <div class="card-body d-flex flex-column">
             <div v-if="editingTipId === tip.id">
               <textarea
+                :id="'editTip_' + tip.id"
+                name="editTipContent"
                 v-model="editTipContent"
                 class="form-control mb-2"
                 rows="2"
               ></textarea>
-              <button
-                class="btn btn-success btn-sm me-1"
-                @click="saveEditTip(tip)"
-              >
-                <i class="bi bi-check"></i> Save
-              </button>
-              <button class="btn btn-secondary btn-sm" @click="cancelEditTip">
-                <i class="bi bi-x"></i> Cancel
-              </button>
+              <div class="d-flex flex-column flex-sm-row gap-2">
+                <button
+                  class="btn btn-success btn-sm"
+                  @click="saveEditTip(tip)"
+                  type="button"
+                >
+                  <i class="bi bi-check"></i> Save
+                </button>
+                <button
+                  class="btn btn-secondary btn-sm"
+                  @click="cancelEditTip"
+                  type="button"
+                >
+                  <i class="bi bi-x"></i> Cancel
+                </button>
+              </div>
             </div>
             <div v-else>
-              <div class="fw-bold mb-1 text-success">
-                <i class="bi bi-person-circle me-1"></i
-                >{{ tip.author || "Anonymous" }}
+              <div class="d-flex align-items-center mb-1 flex-wrap">
+                <i class="bi bi-person-circle me-1 fs-5 text-success"></i>
+                <span class="fw-bold me-2">
+                  {{ tip.author || "Anonymous" }}
+                </span>
+                <span
+                  v-if="tip.authorRole === 'admin'"
+                  class="badge bg-danger ms-2"
+                  title="Admin"
+                >
+                  <i class="bi bi-shield-lock-fill me-1"></i>Admin
+                </span>
               </div>
-              <div class="mb-2" style="min-height: 2.5em">
-                {{ tip.content }}
+              <div class="mb-2 tip-content">
+                <router-link
+                  :to="{ name: 'tip-detail', params: { id: tip.id } }"
+                  class="text-decoration-none text-body"
+                >
+                  {{
+                    tip.content.length > 120
+                      ? tip.content.slice(0, 120) + "…"
+                      : tip.content
+                  }}
+                </router-link>
               </div>
             </div>
-            <div class="mt-auto d-flex justify-content-between align-items-end">
+            <div
+              class="mt-auto d-flex flex-column flex-sm-row justify-content-between align-items-start align-items-sm-end gap-2"
+            >
               <div>
                 <button
-                  class="btn btn-outline-primary btn-sm"
+                  class="btn btn-outline-primary btn-sm mb-1 mb-sm-0"
                   @click="likeTip(tip)"
                   :disabled="!canLike(tip)"
                   :title="
@@ -71,13 +104,18 @@
                   ></i>
                   <span class="ms-1">{{ tip.likes || 0 }}</span>
                 </button>
-                <span class="ms-2 small text-muted">{{
+                <span class="ms-2 small text-muted d-block d-sm-inline">{{
                   formatDate(tip.createdAt)
                 }}</span>
               </div>
-              <div v-if="tip.authorId === auth.currentUser?.uid">
+              <div
+                v-if="
+                  userRole === 'admin' || tip.authorId === auth.currentUser?.uid
+                "
+                class="d-flex gap-2"
+              >
                 <button
-                  class="btn btn-outline-warning btn-sm me-1"
+                  class="btn btn-outline-warning btn-sm"
                   @click="startEditTip(tip)"
                   title="Edit"
                 >
@@ -101,6 +139,8 @@
               >
                 <div v-if="editingCommentId === comment.id">
                   <input
+                    :id="'editComment_' + comment.id"
+                    name="editCommentContent"
                     v-model="editCommentContent"
                     class="form-control form-control-sm mb-1"
                     required
@@ -108,12 +148,14 @@
                   <button
                     class="btn btn-success btn-xs me-1"
                     @click="saveEditComment(tip.id, comment)"
+                    type="button"
                   >
                     <i class="bi bi-check"></i> Save
                   </button>
                   <button
                     class="btn btn-secondary btn-xs"
                     @click="cancelEditComment"
+                    type="button"
                   >
                     <i class="bi bi-x"></i> Cancel
                   </button>
@@ -123,11 +165,21 @@
                     <span class="fw-bold me-2">{{
                       comment.author || "Anonymous"
                     }}</span>
-                    <span class="text-muted small">{{
+                    <span
+                      v-if="comment.authorRole === 'admin'"
+                      class="badge bg-danger ms-2"
+                      title="Admin"
+                    >
+                      <i class="bi bi-shield-lock-fill me-1"></i>Admin
+                    </span>
+                    <span class="text-muted small ms-2">{{
                       formatDate(comment.createdAt)
                     }}</span>
                     <span
-                      v-if="comment.authorId === auth.currentUser?.uid"
+                      v-if="
+                        userRole === 'admin' ||
+                        comment.authorId === auth.currentUser?.uid
+                      "
                       class="ms-auto"
                     >
                       <button
@@ -148,6 +200,7 @@
                     <span class="me-2">{{ comment.content }}</span>
                     <button
                       class="btn btn-outline-primary btn-xs py-0 px-2"
+                      style="border: none"
                       @click="likeComment(tip.id, comment)"
                       :disabled="!canLikeComment(comment)"
                       :title="
@@ -172,15 +225,23 @@
               </div>
               <!-- Comment Form -->
               <form @submit.prevent="submitComment(tip.id)" class="d-flex mt-2">
+                <label :for="'commentInput_' + tip.id" class="visually-hidden"
+                  >Add a comment</label
+                >
                 <input
+                  :id="'commentInput_' + tip.id"
+                  name="comment"
                   v-model="newComment[tip.id]"
                   class="form-control form-control-sm me-2"
                   placeholder="Add a comment..."
                   required
+                  aria-label="Add a comment"
                 />
                 <button
                   class="btn btn-success btn-sm"
                   :disabled="!newComment[tip.id]?.trim()"
+                  aria-label="Submit comment"
+                  type="submit"
                 >
                   <i class="bi bi-send"></i>
                 </button>
@@ -194,10 +255,11 @@
 </template>
 
 <script setup>
-// filepath: src/components/Authenticated/Dashboard/TipsForum.vue
 import useTipsForum from "@composables/useTipsForum";
+import { useSettings } from "@composables/useSettings.js";
 import TipsHeader from "./TipsComponents/TipsHeader.vue";
 
+const { userRole } = useSettings();
 const {
   tips,
   tipsSorted,

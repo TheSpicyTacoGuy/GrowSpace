@@ -23,9 +23,10 @@ const newPlant = ref({
   type: "",
   greenhouseId: "",
   notes: "",
-  waterFrequency: 7,
-  fertiliseFrequency: 30,
+  waterFrequency: null,
+  fertiliseFrequency: null,
 });
+const errors = ref({});
 
 // Common plant types for the dropdown
 const plantTypes = [
@@ -74,16 +75,29 @@ const resetForm = () => {
     type: "",
     greenhouseId: "",
     notes: "",
-    waterFrequency: 7,
-    fertiliseFrequency: 30,
+    waterFrequency: null,
+    fertiliseFrequency: null,
   };
 };
 
+function validate() {
+  errors.value = {};
+  if (!newPlant.value.name.trim()) {
+    errors.value.name = "Name is required.";
+  }
+  if (!newPlant.value.type.trim()) {
+    errors.value.type = "Type is required.";
+  }
+  return Object.keys(errors.value).length === 0;
+}
+
 const submitForm = async () => {
   try {
-    await props.addPlant(newPlant.value);
-    resetForm();
-    emit("modalClosed");
+    if (validate()) {
+      await props.addPlant(newPlant.value);
+      resetForm();
+      emit("modalClosed");
+    }
   } catch (error) {
     return error;
     // Error is handled in the composable
@@ -121,7 +135,17 @@ const submitForm = async () => {
                 id="plantName"
                 v-model="newPlant.name"
                 required
+                :aria-invalid="!!errors.name"
+                aria-describedby="plantNameError"
               />
+              <div
+                v-if="errors.name"
+                id="plantNameError"
+                class="text-danger"
+                role="alert"
+              >
+                {{ errors.name }}
+              </div>
             </div>
             <div class="mb-3">
               <label for="plantType" class="form-label">Type</label>
@@ -129,6 +153,8 @@ const submitForm = async () => {
                 class="form-select"
                 id="plantType"
                 v-model="newPlant.type"
+                :aria-invalid="!!errors.type"
+                aria-describedby="plantTypeError"
               >
                 <option
                   v-for="type in plantTypes"
@@ -138,6 +164,14 @@ const submitForm = async () => {
                   {{ type.label }}
                 </option>
               </select>
+              <div
+                v-if="errors.type"
+                id="plantTypeError"
+                class="text-danger"
+                role="alert"
+              >
+                {{ errors.type }}
+              </div>
             </div>
             <div class="mb-3">
               <label for="plantGreenhouse" class="form-label">Greenhouse</label>
@@ -156,6 +190,16 @@ const submitForm = async () => {
                 </option>
               </select>
             </div>
+            <div class="mb-3">
+              <label for="plantNotes" class="form-label">Notes</label>
+              <textarea
+                class="form-control"
+                id="plantNotes"
+                v-model="newPlant.notes"
+                rows="3"
+                aria-label="Plant notes"
+              ></textarea>
+            </div>
             <div class="row">
               <div class="col-md-6 mb-3">
                 <label for="waterFrequency" class="form-label"
@@ -165,6 +209,7 @@ const submitForm = async () => {
                   class="form-select"
                   id="waterFrequency"
                   v-model.number="newPlant.waterFrequency"
+                  aria-label="Watering schedule"
                 >
                   <option
                     v-for="schedule in wateringSchedules"
@@ -183,6 +228,7 @@ const submitForm = async () => {
                   class="form-select"
                   id="fertiliseFrequency"
                   v-model.number="newPlant.fertiliseFrequency"
+                  aria-label="Fertilising schedule"
                 >
                   <option
                     v-for="schedule in fertilisingSchedules"
@@ -193,15 +239,6 @@ const submitForm = async () => {
                   </option>
                 </select>
               </div>
-            </div>
-            <div class="mb-3">
-              <label for="plantNotes" class="form-label">Notes</label>
-              <textarea
-                class="form-control"
-                id="plantNotes"
-                v-model="newPlant.notes"
-                rows="3"
-              ></textarea>
             </div>
           </form>
         </div>

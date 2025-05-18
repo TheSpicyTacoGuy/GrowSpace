@@ -124,7 +124,12 @@ async function saveNotesChange() {
         </div>
         <hr v-if="!isEditingType" class="my-1" />
         <div v-else class="mt-1">
-          <select class="form-select form-select-sm" v-model="selectedType">
+          <select
+            class="form-select form-select-sm"
+            v-model="selectedType"
+            :id="'plantType_' + plant.id"
+            :name="'plantType_' + plant.id"
+          >
             <option
               v-for="type in plantTypes"
               :key="type.value"
@@ -134,12 +139,21 @@ async function saveNotesChange() {
             </option>
           </select>
           <div class="mt-1 d-flex">
-            <button class="btn btn-sm btn-success me-1" @click="saveTypeChange">
+            <button
+              class="btn btn-sm btn-success me-1"
+              @click="saveTypeChange"
+              type="button"
+              :id="'saveType_' + plant.id"
+              :name="'saveType_' + plant.id"
+            >
               <i class="bi bi-check-lg"></i> Save
             </button>
             <button
               class="btn btn-sm btn-outline-secondary"
               @click="cancelTypeEditing"
+              type="button"
+              :id="'cancelType_' + plant.id"
+              :name="'cancelType_' + plant.id"
             >
               Cancel
             </button>
@@ -186,17 +200,25 @@ async function saveNotesChange() {
             v-model="editedNotes"
             rows="3"
             placeholder="Add notes about your plant..."
+            :id="'plantNotes_' + plant.id"
+            :name="'plantNotes_' + plant.id"
           ></textarea>
           <div class="mt-1 d-flex">
             <button
               class="btn btn-sm btn-success me-1"
               @click="saveNotesChange"
+              type="button"
+              :id="'saveNotes_' + plant.id"
+              :name="'saveNotes_' + plant.id"
             >
               <i class="bi bi-check-lg"></i> Save
             </button>
             <button
               class="btn btn-sm btn-outline-secondary"
               @click="cancelNotesEditing"
+              type="button"
+              :id="'cancelNotes_' + plant.id"
+              :name="'cancelNotes_' + plant.id"
             >
               Cancel
             </button>
@@ -214,6 +236,9 @@ async function saveNotesChange() {
             v-tooltip
             title="Water Plant"
             @click="onWater"
+            id="waterPlantBtn"
+            name="waterPlantBtn"
+            type="button"
           >
             <i class="bi bi-droplet-fill"></i>
           </button>
@@ -225,6 +250,9 @@ async function saveNotesChange() {
             v-tooltip
             title="Fertilise Plant"
             @click="onFertilise"
+            id="fertilisePlantBtn"
+            name="fertilisePlantBtn"
+            type="button"
           >
             <i class="bi bi-flower1"></i>
           </button>
@@ -247,6 +275,9 @@ async function saveNotesChange() {
             v-tooltip
             title="Delete Plant"
             @click="onDelete(plant)"
+            type="button"
+            :id="'deletePlant_' + plant.id"
+            :name="'deletePlant_' + plant.id"
           >
             <i class="bi bi-trash"></i>
           </button>

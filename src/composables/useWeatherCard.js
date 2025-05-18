@@ -3,6 +3,24 @@ import RainEffect from "@js/weatherEffects/RainEffect.js";
 import SnowEffect from "@js/weatherEffects/SnowEffect.js";
 
 export default function useWeatherCard(props) {
+  // Add location display logic
+  const locationDisplay = computed(() => {
+    if (!props.weather.loaded) return "Loading...";
+
+    // If using fallback/approximate location
+    if (props.weather.usingFallback) {
+      return `${props.weather.locationName || "Approximate location"} (estimated)`;
+    }
+
+    // If manual location is set
+    if (props.weather.isManualLocation) {
+      return `${props.weather.locationName || "Custom location"}`;
+    }
+
+    // Current location
+    return props.weather.locationName || "Current location";
+  });
+
   // Scrollable forecast logic
   const scrollPosition = ref(0);
   const canScrollLeft = ref(false);
@@ -143,5 +161,6 @@ export default function useWeatherCard(props) {
     weatherEffectClass,
     updateScrollIndicators,
     scrollForecast,
+    locationDisplay, // Add this new computed value
   };
 }

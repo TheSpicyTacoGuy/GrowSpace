@@ -1,15 +1,14 @@
 <script setup>
-import { onMounted, ref } from "vue";
 import { Tooltip } from "bootstrap";
 import { useRouter } from "vue-router";
-import { getAuth, onAuthStateChanged } from "firebase/auth";
-import { login, logout } from "../js/auth/authFunctions.js";
+import { logout } from "../js/auth/authFunctions.js";
+import { ref, onMounted } from "vue";
+import { useUserRole } from "@composables/useUserRole.js";
 
 const router = useRouter();
-const currentUser = ref(null);
-const auth = getAuth();
-const authLoading = ref(true); // Add loading state
-const imageLoadError = ref(false); // Track if the User image failed to load
+const imageLoadError = ref(false);
+
+const { userRole, currentUser, authLoading } = useUserRole();
 
 function checkActiveRoute(routeName) {
   return router.currentRoute.value.name === routeName;
@@ -17,8 +16,6 @@ function checkActiveRoute(routeName) {
 function isActive(routeName) {
   return checkActiveRoute(routeName) ? "active" : "";
 }
-
-// Updated to use vue-router for page navigation
 function navigateTo(routeName) {
   if (routeName === "home") {
     router.push("/");
@@ -28,12 +25,6 @@ function navigateTo(routeName) {
 }
 
 onMounted(() => {
-  // Set up authentication state listener
-  onAuthStateChanged(auth, (user) => {
-    currentUser.value = user;
-    authLoading.value = false; // Set loading to false after checking auth state
-  });
-
   const tooltipTriggerList = document.querySelectorAll(
     '[data-bs-toggle="tooltip"]'
   );
@@ -45,7 +36,7 @@ onMounted(() => {
 
 <template>
   <div
-    class="container-fluid header-wrapper d-flex flex-wrap border-bottom w-100 align-items-center justify-content-between"
+    class="container-fluid header-wrapper d-flex flex-wrap border-bottom w-100 align-items-center justify-content-between bg-body-tertiary shadow-lg"
   >
     <nav class="navbar navbar-expand-xl">
       <!-- Mobile Menu Button -->
@@ -114,18 +105,19 @@ onMounted(() => {
                   About
                 </a>
               </li>
-              <li class="nav-item" v-if="currentUser">
+              <li class="nav-item mb-2" v-if="currentUser">
                 <a
-                  class="nav-link"
-                  :class="
+                  class="nav-link dashboard-btn py-2 px-3 d-flex align-items-center"
+                  :class="[
                     router.currentRoute.value.path.includes('dashboard')
                       ? 'active'
-                      : ''
-                  "
+                      : '',
+                  ]"
                   href="#"
                   @click.prevent="navigateTo('dashboard')"
                   data-bs-dismiss="offcanvas"
                 >
+                  <i class="bi bi-grid-1x2-fill me-2"></i>
                   Dashboard
                 </a>
               </li>
@@ -175,17 +167,18 @@ onMounted(() => {
               About
             </a>
           </li>
-          <li class="nav-item" v-if="currentUser">
+          <li class="nav-item ms-2" v-if="currentUser">
             <a
-              class="nav-link"
-              :class="
+              class="nav-link dashboard-btn py-2 px-3 d-flex align-items-center"
+              :class="[
                 router.currentRoute.value.path.includes('dashboard')
                   ? 'active'
-                  : ''
-              "
+                  : '',
+              ]"
               href="#"
               @click.prevent="navigateTo('dashboard')"
             >
+              <i class="bi bi-grid-1x2-fill me-2"></i>
               Dashboard
             </a>
           </li>
@@ -197,12 +190,27 @@ onMounted(() => {
       <!-- Login Button (when not logged in) -->
       <button
         v-if="!currentUser && !authLoading"
-        class="btn btn-outline-primary me-2"
-        @click="login()"
+        class="btn btn-primary login-btn d-flex align-items-center"
+        @click="navigateTo('login')"
         data-bs-toggle="tooltip"
         data-bs-title="Sign In"
       >
-        <span>Login</span>
+        <i class="bi bi-box-arrow-in-right me-2"></i>
+        <span>Sign In</span>
+      </button>
+
+      <!-- Add a loading state for the login process -->
+      <button
+        v-else-if="authLoading && !currentUser"
+        class="btn btn-primary login-btn"
+        disabled
+      >
+        <span
+          class="spinner-border spinner-border-sm me-2"
+          role="status"
+          aria-hidden="true"
+        ></span>
+        <span>Signing in...</span>
       </button>
 
       <!-- User Avatar Dropdown (when logged in) -->
@@ -240,44 +248,93 @@ onMounted(() => {
           </div>
         </a>
         <ul
-          class="dropdown-menu dropdown-menu-end"
+          class="dropdown-menu dropdown-menu-end user-dropdown shadow-lg"
           aria-labelledby="userDropdown"
         >
-          <li>
-            <span class="dropdown-item-text">{{
-              currentUser.displayName || currentUser.email
-            }}</span>
+          <!-- User info header with enhanced styling -->
+          <li class="dropdown-user-details p-3 border-bottom">
+            <div class="d-flex align-items-center">
+              <!-- User avatar/image -->
+              <div class="me-3">
+                <img
+                  v-if="currentUser.photoURL && !imageLoadError"
+                  :src="currentUser.photoURL"
+                  alt="User photo"
+                  class="rounded-circle"
+                  style="width: 48px; height: 48px; object-fit: cover"
+                  @error="imageLoadError = true"
+                />
+                <div
+                  v-else
+                  class="rounded-circle bg-primary text-white d-flex align-items-center justify-content-center"
+                  style="width: 48px; height: 48px; font-size: 18px"
+                >
+                  {{
+                    currentUser.displayName
+                      ? currentUser.displayName.charAt(0).toUpperCase()
+                      : "U"
+                  }}
+                </div>
+              </div>
+
+              <!-- User details -->
+              <div class="user-info">
+                <div class="fw-bold text-truncate" style="max-width: 200px">
+                  {{ currentUser.displayName || currentUser.email }}
+                </div>
+                <div
+                  class="text-muted small"
+                  v-if="currentUser.displayName && currentUser.email"
+                >
+                  {{ currentUser.email }}
+                </div>
+                <div v-if="userRole === 'admin'" class="mt-1">
+                  <span class="badge bg-danger">
+                    <i class="bi bi-shield-lock-fill me-1"></i> Admin
+                  </span>
+                </div>
+              </div>
+            </div>
           </li>
-          <li><hr class="dropdown-divider" /></li>
-          <!-- <li>
-            <a
-              class="dropdown-item"
-              href="#"
-              @click.prevent="navigateTo('profile')"
-              >Profile</a
-            >
-          </li>
+
+          <!-- Menu items with icons -->
           <li>
             <a
-              class="dropdown-item"
-              href="#"
-              @click.prevent="navigateTo('account')"
-              >Account Settings</a
-            >
-          </li> -->
-          <li v-if="currentUser">
-            <a
-              class="dropdown-item"
+              class="dropdown-item py-2"
               href="#"
               @click.prevent="navigateTo('dashboard')"
-              >Dashboard</a
             >
+              <i class="bi bi-grid-1x2-fill me-2 text-primary"></i>
+              Dashboard
+            </a>
           </li>
-          <li><hr class="dropdown-divider" /></li>
           <li>
-            <a class="dropdown-item" href="#" @click.prevent="logout()"
-              >Logout</a
+            <a
+              class="dropdown-item py-2"
+              href="#"
+              @click.prevent="navigateTo('dashboard/settings')"
             >
+              <i class="bi bi-gear-fill me-2 text-primary"></i>
+              Settings
+            </a>
+          </li>
+
+          <!-- Divider -->
+          <li><hr class="dropdown-divider" /></li>
+
+          <!-- Logout with icon -->
+          <li>
+            <a class="dropdown-item py-2" href="#" @click.prevent="logout()">
+              <i class="bi bi-box-arrow-right me-2 text-danger"></i>
+              Logout
+            </a>
+          </li>
+
+          <!-- App info in footer -->
+          <li
+            class="dropdown-item-text small text-muted text-center py-2 mt-1 border-top"
+          >
+            GrowSpace v1.0
           </li>
         </ul>
       </div>

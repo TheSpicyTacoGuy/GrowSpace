@@ -17,27 +17,42 @@ const emit = defineEmits(["modalClosed"]);
 const newGreenhouse = ref({
   name: "",
   description: "",
-  size: 0,
+  size: null,
   location: "",
 });
+
+const errors = ref({});
 
 const resetForm = () => {
   newGreenhouse.value = {
     name: "",
     description: "",
-    size: 0,
+    size: null,
     location: "",
   };
 };
 
+const validate = () => {
+  errors.value = {};
+  if (!newGreenhouse.value.name.trim()) {
+    errors.value.name = "Name is required.";
+  }
+  if (!newGreenhouse.value.size || newGreenhouse.value.size <= 0) {
+    errors.value.size = "Size must be a positive number.";
+  }
+  return Object.keys(errors.value).length === 0;
+};
+
 const submitForm = async () => {
-  try {
-    await props.addGreenhouse(newGreenhouse.value);
-    resetForm();
-    emit("modalClosed");
-  } catch (error) {
-    return error;
-    // Error is handled in the composable
+  if (validate()) {
+    try {
+      await props.addGreenhouse(newGreenhouse.value);
+      resetForm();
+      emit("modalClosed");
+    } catch (error) {
+      return error;
+      // Error is handled in the composable
+    }
   }
 };
 </script>
@@ -74,7 +89,18 @@ const submitForm = async () => {
                 id="greenhouseName"
                 v-model="newGreenhouse.name"
                 required
+                aria-label="Greenhouse name"
+                :aria-invalid="!!errors.name"
+                aria-describedby="greenhouseNameError"
               />
+              <div
+                v-if="errors.name"
+                id="greenhouseNameError"
+                class="text-danger"
+                role="alert"
+              >
+                {{ errors.name }}
+              </div>
             </div>
             <div class="mb-3">
               <label for="greenhouseDescription" class="form-label"
@@ -85,6 +111,7 @@ const submitForm = async () => {
                 id="greenhouseDescription"
                 v-model="newGreenhouse.description"
                 rows="3"
+                aria-label="Greenhouse description"
               ></textarea>
             </div>
             <div class="row">
@@ -98,7 +125,23 @@ const submitForm = async () => {
                   id="greenhouseSize"
                   v-model.number="newGreenhouse.size"
                   min="0"
+                  aria-required="true"
+                  aria-describedby="greenhouseSizeHelp"
+                  aria-label="Greenhouse size in square meters"
+                  :aria-invalid="!!errors.size"
+                  required
                 />
+                <div id="greenhouseSizeHelp" class="form-text">
+                  Enter the size in square meters.
+                </div>
+                <div
+                  v-if="errors.size"
+                  id="greenhouseSizeError"
+                  class="text-danger"
+                  role="alert"
+                >
+                  {{ errors.size }}
+                </div>
               </div>
               <div class="col-md-6 mb-3">
                 <label for="greenhouseLocation" class="form-label"
@@ -109,6 +152,7 @@ const submitForm = async () => {
                   class="form-control"
                   id="greenhouseLocation"
                   v-model="newGreenhouse.location"
+                  aria-label="Greenhouse location"
                 />
               </div>
             </div>

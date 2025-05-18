@@ -5,15 +5,38 @@
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <link rel="icon" href="./favicon.ico" />
     <title>GrowSpace</title>
-    <script type="module" crossorigin src="./assets/index-D42LfwN6.js"></script>
-    <link rel="modulepreload" crossorigin href="./assets/firebase-app-BCy-GEY_.js">
-    <link rel="modulepreload" crossorigin href="./assets/firebase-firestore-Dkfz86AT.js">
-    <link rel="modulepreload" crossorigin href="./assets/vendor-CqAAxUkD.js">
-    <link rel="modulepreload" crossorigin href="./assets/firebase-auth-DM_RT3Ce.js">
+    <script>
+      (function() {
+        function getThemeCookie() {
+          var match = document.cookie.match(/(?:^|;\s*)theme=([^;]*)/);
+          return match ? decodeURIComponent(match[1]) : null;
+        }
+        function getSystemTheme() {
+          return window.matchMedia &&
+            window.matchMedia("(prefers-color-scheme: dark)").matches
+            ? "dark"
+            : "light";
+        }
+        var theme = getThemeCookie() || localStorage.getItem("theme") || "system";
+        var html = document.documentElement;
+        html.removeAttribute("data-bs-theme");
+        var appliedTheme = theme === "system" ? getSystemTheme() : theme;
+        if (appliedTheme === "dark") {
+          html.setAttribute("data-bs-theme", "dark");
+        } else if (appliedTheme === "light") {
+          html.setAttribute("data-bs-theme", "light");
+        }
+      })();
+    </script>
+    <script type="module" crossorigin src="./assets/index-DCrEM0UK.js"></script>
+    <link rel="modulepreload" crossorigin href="./assets/vendor-CH3iB8CO.js">
     <link rel="modulepreload" crossorigin href="./assets/bootstrap-L9UluXHh.js">
-    <link rel="modulepreload" crossorigin href="./assets/components-MHFRYedT.js">
-    <link rel="stylesheet" crossorigin href="./assets/components-DKMGrB6N.css">
-    <link rel="stylesheet" crossorigin href="./assets/index-2OsuHYK5.css">
+    <link rel="modulepreload" crossorigin href="./assets/firebase-app-BCy-GEY_.js">
+    <link rel="modulepreload" crossorigin href="./assets/firebase-firestore-dmECgiY3.js">
+    <link rel="modulepreload" crossorigin href="./assets/firebase-auth-C67BORIE.js">
+    <link rel="modulepreload" crossorigin href="./assets/components-yOAthRVv.js">
+    <link rel="stylesheet" crossorigin href="./assets/components-CyYqzCYJ.css">
+    <link rel="stylesheet" crossorigin href="./assets/index-BPpH6SBR.css">
   </head>
   <body>
     <div id="app"></div>

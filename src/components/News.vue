@@ -3,7 +3,7 @@
     <h1 class="mb-4">Latest News</h1>
 
     <!-- Search filters -->
-    <div class="card mb-4">
+    <form @submit.prevent="applyFilters" class="card mb-4">
       <div class="card-body">
         <div class="row g-3">
           <div class="col-md-3">
@@ -12,6 +12,7 @@
               type="text"
               class="form-control"
               id="searchTitle"
+              name="searchTitle"
               v-model="filters.title"
               placeholder="Search by title"
             />
@@ -21,6 +22,7 @@
             <select
               class="form-select"
               id="searchCategory"
+              name="searchCategory"
               v-model="filters.category"
             >
               <option value="">All Categories</option>
@@ -62,16 +64,18 @@
             />
           </div>
           <div class="col-12 d-flex justify-content-end">
-            <button class="btn btn-primary me-2" @click="applyFilters">
-              Search
-            </button>
-            <button class="btn btn-outline-secondary" @click="resetFilters">
+            <button type="submit" class="btn btn-primary me-2">Search</button>
+            <button
+              type="button"
+              class="btn btn-outline-secondary"
+              @click="resetFilters"
+            >
               Reset
             </button>
           </div>
         </div>
       </div>
-    </div>
+    </form>
 
     <!-- News list -->
     <div v-if="filteredNews.length > 0">

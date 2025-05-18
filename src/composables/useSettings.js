@@ -1,7 +1,10 @@
 import { ref, onMounted, watch } from "vue";
 import { auth } from "@js/auth/firebase.js";
+import { getFirestore, doc, getDoc } from "firebase/firestore";
 import { showToast } from "/js/toast";
 import { updateProfile } from "firebase/auth";
+
+const db = getFirestore();
 
 // Cookie helpers
 function setThemeCookie(theme) {
@@ -12,15 +15,77 @@ function getThemeCookie() {
   return match ? decodeURIComponent(match[1]) : null;
 }
 
+function getSystemTheme() {
+  return window.matchMedia && window.matchMedia("(prefers-color-scheme: dark)").matches
+    ? "dark"
+    : "light";
+}
+
 const displayName = ref("");
 const email = ref("");
 const theme = ref("system");
+const userRole = ref("user");
+const weatherLocation = ref({
+  type: "current", // "current" or "manual"
+  manual: "",      // e.g., "Melbourne, AU"
+  coords: null     // { lat, lon, name, country }
+});
 
-function getSystemTheme() {
-  return window.matchMedia &&
-    window.matchMedia("(prefers-color-scheme: dark)").matches
-    ? "dark"
-    : "light";
+// Load from localStorage/cookie if available
+function loadWeatherLocation() {
+  const stored = localStorage.getItem("weatherLocation");
+  if (stored) {
+    try {
+      weatherLocation.value = JSON.parse(stored);
+    } catch {
+      // fallback to default
+    }
+  }
+}
+
+function saveWeatherLocation() {
+  localStorage.setItem("weatherLocation", JSON.stringify(weatherLocation.value));
+}
+
+// Geocode and save coordinates for manual location
+async function validateAndSaveWeatherLocation() {
+  if (
+    weatherLocation.value.type === "manual" &&
+    weatherLocation.value.manual.trim() !== ""
+  ) {
+    try {
+      const resp = await fetch(
+        `https://geocoding-api.open-meteo.com/v1/search?name=${encodeURIComponent(weatherLocation.value.manual)}&count=1&language=en&format=json`
+      );
+      const data = await resp.json();
+      if (!data.results || data.results.length === 0) {
+        showToast("Could not find that location. Try a different format, e.g. 'Melbourne, Australia'.", "danger");
+        weatherLocation.value.coords = null;
+        saveWeatherLocation();
+        return false;
+      }
+      // Save coordinates and display name/country
+      weatherLocation.value.coords = {
+        lat: data.results[0].latitude,
+        lon: data.results[0].longitude,
+        name: data.results[0].name,
+        country: data.results[0].country
+      };
+      saveWeatherLocation();
+      showToast("Weather location saved!", "success");
+      return true;
+    } catch (err) {
+      showToast("Error looking up location.", "danger");
+      weatherLocation.value.coords = null;
+      saveWeatherLocation();
+      return false;
+    }
+  } else {
+    // If using current location, clear coords
+    weatherLocation.value.coords = null;
+    saveWeatherLocation();
+    return true;
+  }
 }
 
 function setTheme(newTheme = false, showToastFlag = false) {
@@ -51,10 +116,17 @@ function setTheme(newTheme = false, showToastFlag = false) {
 }
 
 export function useSettings() {
-  onMounted(() => {
+  onMounted(async () => {
     if (auth.currentUser) {
       displayName.value = auth.currentUser.displayName || "";
       email.value = auth.currentUser.email || "";
+
+      // Fetch user role from Firestore
+      const userRef = doc(db, "userData", auth.currentUser.uid);
+      const userSnap = await getDoc(userRef);
+      if (userSnap.exists()) {
+        userRole.value = userSnap.data().role || "user";
+      }
     }
     // Prefer cookie, fallback to localStorage, then system
     theme.value = getThemeCookie() || localStorage.getItem("theme") || "system";
@@ -66,6 +138,8 @@ export function useSettings() {
         setTheme("system", false);
       });
     }
+
+    loadWeatherLocation();
   });
 
   // Reactively apply theme if changed elsewhere, but skip first run
@@ -78,6 +152,8 @@ export function useSettings() {
       hasMounted = true;
     }
   });
+
+  watch(weatherLocation, saveWeatherLocation, { deep: true });
 
   const saveSettings = async () => {
     try {
@@ -95,7 +171,11 @@ export function useSettings() {
     displayName,
     email,
     theme,
+    userRole, // Export role
     saveSettings,
     setTheme,
+    weatherLocation,
+    saveWeatherLocation,
+    validateAndSaveWeatherLocation, // <-- export this
   };
 }
