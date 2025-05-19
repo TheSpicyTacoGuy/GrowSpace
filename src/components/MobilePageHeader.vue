@@ -43,7 +43,9 @@ const goBack = () => {
 </script>
 
 <template>
-  <div class="mobile-page-header d-block d-lg-none">
+  <div
+    class="mobile-page-header d-block d-lg-none bg-primary text-white shadow-sm rounded-3"
+  >
     <div class="d-flex align-items-center justify-content-between">
       <!-- Back button area -->
       <div class="header-left">

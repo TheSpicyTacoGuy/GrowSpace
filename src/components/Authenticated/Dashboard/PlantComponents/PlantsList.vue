@@ -1,5 +1,4 @@
 <script setup>
-import { defineProps, defineEmits } from "vue";
 import PlantCard from "./PlantCard.vue";
 
 const props = defineProps({
