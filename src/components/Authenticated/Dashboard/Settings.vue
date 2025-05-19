@@ -476,7 +476,7 @@
             <div class="mt-3">
               <p class="small text-muted">
                 Need more help? Contact support at
-                <a href="mailto:support@example.com">support@example.com</a>
+                <a href="mailto:support@growspace.com">support@growspace.com</a>
               </p>
             </div>
           </section>
