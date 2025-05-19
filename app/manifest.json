@@ -1,0 +1,88 @@
+{
+    "name": "GrowSpace",
+    "short_name": "GrowSpace",
+    "description": "Track, manage and care for your plants with GrowSpace",
+    "categories": [
+        "productivity",
+        "lifestyle",
+        "utilities"
+    ],
+    "icons": [
+        {
+            "src": "./android-chrome-192x192.png",
+            "sizes": "192x192",
+            "type": "image/png",
+            "purpose": "any"
+        },
+        {
+            "src": "./android-chrome-512x512.png",
+            "sizes": "512x512",
+            "type": "image/png",
+            "purpose": "any"
+        },
+        {
+            "src": "./maskable-icon-512x512.png",
+            "sizes": "512x512",
+            "type": "image/png",
+            "purpose": "maskable"
+        }
+    ],
+    "screenshots": [
+        {
+            "src": "./screenshots/plants-dashboard.jpg",
+            "sizes": "1280x720",
+            "type": "image/jpeg",
+            "platform": "wide",
+            "label": "Plants Dashboard"
+        },
+        {
+            "src": "./screenshots/plant-detail.jpg",
+            "sizes": "1280x720",
+            "type": "image/jpeg",
+            "platform": "wide",
+            "label": "Plant Details"
+        },
+        {
+            "src": "./screenshots/greenhouse-mobile.jpg",
+            "sizes": "750x1334",
+            "type": "image/jpeg",
+            "platform": "narrow",
+            "label": "Greenhouses on Mobile"
+        }
+    ],
+    "shortcuts": [
+        {
+            "name": "Add Plant",
+            "short_name": "Add Plant",
+            "description": "Create a new plant",
+            "url": "/dashboard/plants?action=add",
+            "icons": [
+                {
+                    "src": "./shortcuts/add-plant.png",
+                    "sizes": "192x192"
+                }
+            ]
+        },
+        {
+            "name": "View Greenhouses",
+            "short_name": "Greenhouses",
+            "description": "Manage your greenhouses",
+            "url": "/dashboard/greenhouses",
+            "icons": [
+                {
+                    "src": "./shortcuts/greenhouses.png",
+                    "sizes": "192x192"
+                }
+            ]
+        }
+    ],
+    "theme_color": "#5a9e62",
+    "background_color": "#ffffff",
+    "display": "standalone",
+    "orientation": "any",
+    "start_url": "/",
+    "scope": "/",
+    "dir": "ltr",
+    "lang": "en",
+    "prefer_related_applications": false
+}
