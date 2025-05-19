@@ -1,7 +1,8 @@
 <script setup>
+import { defineProps, defineEmits } from "vue";
 import PlantCard from "./PlantCard.vue";
 
-defineProps({
+const props = defineProps({
   plants: {
     type: Array,
     required: true,
@@ -56,11 +57,20 @@ defineProps({
   },
 });
 
+// Add emit for updates
+const emit = defineEmits(["plant-updated"]);
+
 // Helper function to get greenhouse for a plant
 const getGreenhouseForPlant = (plant, greenhouses) => {
   if (!plant.greenhouseId) return null;
   return greenhouses.find((g) => g.id === plant.greenhouseId) || null;
 };
+
+// Handle plant updated from card
+function handlePlantUpdated(updatedPlant) {
+  // Emit to parent component
+  emit("plant-updated", updatedPlant);
+}
 </script>
 
 <template>
@@ -124,6 +134,7 @@ const getGreenhouseForPlant = (plant, greenhouses) => {
           :onWater="onWater"
           :onFertilise="onFertilise"
           :onUpdate="onUpdate"
+          @updated="handlePlantUpdated"
         />
       </div>
     </div>

@@ -1,5 +1,5 @@
 <script setup>
-import { ref } from "vue";
+import { ref, watch } from "vue";
 import { usePlants } from "@composables/usePlants.js";
 
 const props = defineProps({
@@ -9,6 +9,9 @@ const props = defineProps({
   onUpdate: { type: Function, required: true },
 });
 
+// Define an emit to notify parent of changes
+const emit = defineEmits(["updated"]);
+
 const {
   getLastWateredFormatted,
   getLastFertilisedFormatted,
@@ -16,53 +19,65 @@ const {
   needsFertiliser,
   handleWater,
   handleFertilise,
+  updatePlant,
 } = usePlants();
 
-const onWater = () => handleWater(props.plant);
-const onFertilise = () => handleFertilise(props.plant);
-
-// --- Add these for editing plant type ---
-const isEditingType = ref(false);
-const selectedType = ref(props.plant.type || "");
-const plantTypes = [
-  { value: "Herb", label: "Herb" },
-  { value: "Vegetable", label: "Vegetable" },
-  { value: "Flower", label: "Flower" },
-  { value: "Succulent", label: "Succulent" },
-  { value: "Other", label: "Other" },
-];
-
-function startEditingType() {
-  isEditingType.value = true;
-  selectedType.value = props.plant.type || "";
-}
-function cancelTypeEditing() {
-  isEditingType.value = false;
-  selectedType.value = props.plant.type || "";
-}
-async function saveTypeChange() {
-  isEditingType.value = false;
-  if (selectedType.value !== props.plant.type) {
-    await props.onUpdate({ ...props.plant, type: selectedType.value });
+const onWater = async () => {
+  const updatedPlant = await handleWater(props.plant);
+  if (updatedPlant) {
+    emit("updated", updatedPlant);
   }
-}
+};
 
-// --- Add these for editing notes if needed ---
+const onFertilise = async () => {
+  const updatedPlant = await handleFertilise(props.plant);
+  if (updatedPlant) {
+    emit("updated", updatedPlant);
+  }
+};
+
+// Notes editing functionality
 const isEditingNotes = ref(false);
 const editedNotes = ref(props.plant.notes || "");
+
+// Keep notes in sync with props
+watch(
+  () => props.plant.notes,
+  (newNotes) => {
+    if (!isEditingNotes.value) {
+      editedNotes.value = newNotes || "";
+    }
+  }
+);
 
 function startEditingNotes() {
   isEditingNotes.value = true;
   editedNotes.value = props.plant.notes || "";
 }
+
 function cancelNotesEditing() {
   isEditingNotes.value = false;
   editedNotes.value = props.plant.notes || "";
 }
+
 async function saveNotesChange() {
-  isEditingNotes.value = false;
-  if (editedNotes.value !== props.plant.notes) {
-    await props.onUpdate({ ...props.plant, notes: editedNotes.value });
+  try {
+    isEditingNotes.value = false;
+    if (editedNotes.value !== props.plant.notes) {
+      // Update Firestore
+      const updatedPlant = await updatePlant(props.plant.id, {
+        notes: editedNotes.value,
+      });
+
+      // Notify parent about the update
+      if (updatedPlant) {
+        emit("updated", { ...props.plant, notes: editedNotes.value });
+      }
+    }
+  } catch (error) {
+    console.error("Error updating notes:", error);
+    // Revert to original notes on error
+    editedNotes.value = props.plant.notes || "";
   }
 }
 </script>
@@ -109,56 +124,16 @@ async function saveNotesChange() {
     </div>
 
     <div class="card-body">
-      <!-- Plant Type as editable dropdown -->
+      <!-- Plant Type - simplified to just display with no editing -->
       <div class="card-text mb-2">
-        <div v-if="!isEditingType" class="d-flex align-items-center">
-          <span>{{ plant.type || "Not specified" }}</span>
-          <button
-            class="btn btn-sm btn-link text-primary p-0 ms-2"
-            @click="startEditingType"
-            v-tooltip
-            title="Edit plant type"
-          >
-            <i class="bi bi-pencil-fill"></i>
-          </button>
+        <div class="d-flex align-items-center">
+          <span>
+            <i class="bi bi-tag me-1 text-muted"></i>
+            {{ plant.type || "Not specified" }}
+          </span>
+          <!-- Type edit button removed -->
         </div>
-        <hr v-if="!isEditingType" class="my-1" />
-        <div v-else class="mt-1">
-          <select
-            class="form-select form-select-sm"
-            v-model="selectedType"
-            :id="'plantType_' + plant.id"
-            :name="'plantType_' + plant.id"
-          >
-            <option
-              v-for="type in plantTypes"
-              :key="type.value"
-              :value="type.value"
-            >
-              {{ type.label }}
-            </option>
-          </select>
-          <div class="mt-1 d-flex">
-            <button
-              class="btn btn-sm btn-success me-1"
-              @click="saveTypeChange"
-              type="button"
-              :id="'saveType_' + plant.id"
-              :name="'saveType_' + plant.id"
-            >
-              <i class="bi bi-check-lg"></i> Save
-            </button>
-            <button
-              class="btn btn-sm btn-outline-secondary"
-              @click="cancelTypeEditing"
-              type="button"
-              :id="'cancelType_' + plant.id"
-              :name="'cancelType_' + plant.id"
-            >
-              Cancel
-            </button>
-          </div>
-        </div>
+        <hr class="my-1" />
       </div>
 
       <p class="card-text">
@@ -176,7 +151,7 @@ async function saveNotesChange() {
         {{ greenhouse.name }}
       </p>
 
-      <!-- Notes section with inline editing -->
+      <!-- Notes section with inline editing (kept as is) -->
       <div class="card-text mt-2">
         <div
           v-if="!isEditingNotes"

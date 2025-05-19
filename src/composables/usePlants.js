@@ -1,4 +1,4 @@
-import { ref, computed } from "vue";
+import { computed, reactive, watch } from "vue";
 import {
   collection,
   getDocs,
@@ -12,348 +12,766 @@ import {
   startAfter,
   where,
   updateDoc,
-  getDoc
+  getDoc,
+  writeBatch
 } from "firebase/firestore";
 import { db, auth } from "@js/auth/firebase.js";
 import { showToast } from "@js/toast.js";
 
-export function usePlants() {
-  // State
-  const plants = ref([]);
-  const loading = ref(true);
-  const error = ref(null);
-  const isAdding = ref(false);
-  const isDeleting = ref(false);
-  const lastDoc = ref(null);
-  const noMoreResults = ref(false);
-  const itemsPerPage = 12;
-  const filters = ref({
-    searchTerm: "",
-    greenhouseId: null,
+export function usePlants(defaultItemsPerPage = 12) {
+  // ==================== STATE MANAGEMENT ====================
+  // Using Vue 3's reactive for better tracking
+  const state = reactive({
+    plants: [],
+    loading: false,
+    error: null,
+    isAdding: false,
+    isDeleting: false,
+    lastDoc: null,
+    noMoreResults: false,
+    itemsPerPage: defaultItemsPerPage,
+    filters: {
+      searchTerm: "",
+      greenhouseId: null,
+    },
+    sortBy: "name",
+    cache: new Map(), // Cache for efficient data access
+    lastFetch: 0, // Timestamp to optimize refetching
+    // Add a version counter to force UI updates when needed
+    version: 0
   });
-  const sortBy = ref("name");
 
-  // Function to convert watering frequency to human-readable text
-  const getWateringScheduleText = (waterFrequency) => {
-    if (!waterFrequency) return "Not specified";
+  // ==================== LOOKUP TABLES ====================
+  // Watering frequency text-to-days mapping
+  const WATERING_FREQUENCY = {
+    "Every day": 1,
+    "Every 2 days": 2,
+    "Every 3 days": 3, 
+    "Every 5 days": 5,
+    "Weekly": 7,
+    "Every 2 weeks": 14,
+    "Every 3 weeks": 21,
+    "Monthly": 30
+  };
+
+  // Days-to-text mapping (reverse of above)
+  const DAYS_TO_TEXT = {
+    1: "Every day",
+    2: "Every 2 days",
+    3: "Every 3 days",
+    5: "Every 5 days",
+    7: "Weekly",
+    14: "Every 2 weeks",
+    21: "Every 3 weeks",
+    30: "Monthly"
+  };
+
+  // Status mapping for different care events
+  const STATUS_MAP = {
+    Watered: "healthy",
+    Fertilised: "growing",
+    Pruned: "healthy",
+    Repotted: "growing"
+  };
+
+  // ==================== UTILITY FUNCTIONS ====================
+  // Generic normalized date getter
+  const getNormalizedDate = (dateInput) => {
+    if (!dateInput) return null;
     
-    switch (waterFrequency) {
-      case 1: return "Every day";
-      case 2: return "Every 2 days";
-      case 3: return "Every 3 days";
-      case 5: return "Every 5 days";
-      case 7: return "Weekly";
-      case 14: return "Every 2 weeks";
-      case 21: return "Every 3 weeks";
-      case 30: return "Monthly";
-      default: return `Every ${waterFrequency} days`;
+    try {
+      if (dateInput.seconds) {
+        return new Date(dateInput.seconds * 1000);
+      }
+      if (dateInput._methodName === "serverTimestamp" || dateInput.type === "server_timestamp") {
+        return new Date();
+      }
+      if (dateInput instanceof Date) {
+        return dateInput;
+      }
+      if (typeof dateInput === "string" || typeof dateInput === "number") {
+        const parsed = new Date(dateInput);
+        return isNaN(parsed.getTime()) ? null : parsed;
+      }
+      return null;
+    } catch {
+      return null;
     }
   };
 
-  // Computed properties
-  const filteredPlants = computed(() => {
-    let arr = [...plants.value];
-    // Filter by greenhouse
-    if (filters.value.greenhouseId && filters.value.greenhouseId !== "") {
-      arr = arr.filter(p => p.greenhouseId === filters.value.greenhouseId);
+  // Extract days from watering schedule text
+  const getDaysFromSchedule = (scheduleText) => {
+    if (!scheduleText) return 7; // Default to weekly
+    
+    // Direct lookup from table
+    if (WATERING_FREQUENCY[scheduleText]) {
+      return WATERING_FREQUENCY[scheduleText];
     }
+    
+    // Try to extract from text pattern
+    const daysMatch = scheduleText.match(/\d+/);
+    if (daysMatch) {
+      let days = parseInt(daysMatch[0], 10);
+      if (scheduleText.toLowerCase().includes("week")) {
+        days *= 7;
+      }
+      return days;
+    }
+    
+    return 7; // Default weekly
+  };
+
+  // Get watering schedule text from days
+  const getWateringScheduleText = (days) => {
+    if (!days) return "Not specified";
+    
+    // Direct lookup from table
+    return DAYS_TO_TEXT[days] || `Every ${days} days`;
+  };
+
+  // Format date for display, with consistent handling
+  const formatDate = (date, fallback = "Never") => {
+    const normalizedDate = getNormalizedDate(date);
+    if (!normalizedDate) return fallback;
+    
+    return normalizedDate.toLocaleDateString(undefined, {
+      year: 'numeric',
+      month: 'short',
+      day: 'numeric'
+    });
+  };
+
+  // Process plant data for consistent format
+  const processPlantData = (id, data) => {
+    // Normalize dates
+    const lastWatered = getNormalizedDate(data.lastWatered);
+    const lastFertilised = getNormalizedDate(data.lastFertilised);
+    const createdAt = getNormalizedDate(data.createdAt) || new Date();
+    const updatedAt = getNormalizedDate(data.updatedAt) || new Date();
+    
+    // Get watering date
+    let wateringDate = getNormalizedDate(data.wateringDate);
+    if (!wateringDate && lastWatered) {
+      const days = data.waterFrequency || 7;
+      wateringDate = new Date(lastWatered);
+      wateringDate.setDate(wateringDate.getDate() + days);
+    }
+    
+    // Calculate days until watering
+    let daysUntilWatering = null;
+    if (wateringDate) {
+      const now = new Date();
+      const diff = wateringDate.getTime() - now.getTime();
+      daysUntilWatering = Math.ceil(diff / (1000 * 60 * 60 * 24));
+    }
+    
+    // Determine if needs water
+    const needsWatering = daysUntilWatering !== null ? daysUntilWatering <= 0 : false;
+    
+    // Calculate days since fertilized
+    let daysSinceFertilised = null;
+    if (lastFertilised) {
+      const now = new Date();
+      const diff = now.getTime() - lastFertilised.getTime();
+      daysSinceFertilised = Math.floor(diff / (1000 * 60 * 60 * 24));
+    }
+    
+    // Determine if needs fertilizer
+    const needsFertilizing = daysSinceFertilised !== null ? 
+      daysSinceFertilised >= (data.fertiliseFrequency || 30) : false;
+    
+    // Determine status
+    let status = data.status || "healthy";
+    if (needsWatering && status !== "needs water") {
+      status = "needs water";
+    }
+    
+    return {
+      id,
+      ...data,
+      lastWatered,
+      lastFertilised,
+      wateringDate,
+      createdAt,
+      updatedAt,
+      status,
+      formattedLastWatered: lastWatered ? formatDate(lastWatered) : "Never",
+      formattedLastFertilised: lastFertilised ? formatDate(lastFertilised) : "Never",
+      daysUntilWatering,
+      needsWatering,
+      needsFertilizing,
+      daysSinceFertilised
+    };
+  };
+
+  // Create debounced function (executes after delay)
+  const debounce = (fn, ms = 300) => {
+    let timeoutId;
+    return (...args) => {
+      clearTimeout(timeoutId);
+      timeoutId = setTimeout(() => fn(...args), ms);
+    };
+  };
+
+  // ==================== COMPUTED PROPERTIES ====================
+  // Filter plants based on current filters
+  const filteredPlants = computed(() => {
+    // Force reactivity by using version
+    const version = state.version;
+    
+    let arr = [...state.plants];
+    
+    // Create cache key based on filters and version
+    const cacheKey = `filter:${state.filters.greenhouseId}:${state.filters.searchTerm}:${version}`;
+    
+    // Check if we have this in cache
+    if (state.cache.has(cacheKey)) {
+      return state.cache.get(cacheKey);
+    }
+    
+    // Filter by greenhouse
+    if (state.filters.greenhouseId && state.filters.greenhouseId !== "") {
+      arr = arr.filter(p => p.greenhouseId === state.filters.greenhouseId);
+    }
+    
     // Filter by search term
-    if (filters.value.searchTerm && filters.value.searchTerm.trim() !== "") {
-      const term = filters.value.searchTerm.trim().toLowerCase();
+    if (state.filters.searchTerm && state.filters.searchTerm.trim() !== "") {
+      const term = state.filters.searchTerm.trim().toLowerCase();
       arr = arr.filter(p =>
         (p.name && p.name.toLowerCase().includes(term)) ||
         (p.type && p.type.toLowerCase().includes(term)) ||
         (p.notes && p.notes.toLowerCase().includes(term))
       );
     }
+    
+    // Cache result with version number included
+    state.cache.set(cacheKey, arr);
     return arr;
   });
 
+  // Sort plants based on current sort setting
   const sortedPlants = computed(() => {
-    let arr = [...filteredPlants.value];
-    if (sortBy.value === "name") {
-      arr.sort((a, b) => a.name.localeCompare(b.name));
-    } else if (sortBy.value === "name-desc") {
-      arr.sort((a, b) => b.name.localeCompare(a.name));
-    } else if (sortBy.value === "created") {
-      arr.sort((a, b) => b.createdAt - a.createdAt);
-    } else if (sortBy.value === "created-asc") {
-      arr.sort((a, b) => a.createdAt - b.createdAt);
+    // Force reactivity by using version - crucial to make this work!
+    const version = state.version;
+    
+    // Create cache key based on filter results and sort and version
+    const cacheKey = `sort:${state.sortBy}:${state.filters.greenhouseId}:${state.filters.searchTerm}:${version}`;
+    
+    // Check if we have this in cache
+    if (state.cache.has(cacheKey)) {
+      return state.cache.get(cacheKey);
     }
+    
+    // Clone to avoid mutating source
+    let arr = [...filteredPlants.value];
+    
+    // Apply sorting
+    switch (state.sortBy) {
+      case "name":
+        arr.sort((a, b) => a.name.localeCompare(b.name));
+        break;
+        
+      case "name-desc":
+        arr.sort((a, b) => b.name.localeCompare(a.name));
+        break;
+        
+      case "created":
+        arr.sort((a, b) => {
+          // Handle different timestamp formats
+          const aTime = a.createdAt instanceof Date ? a.createdAt.getTime() : 0;
+          const bTime = b.createdAt instanceof Date ? b.createdAt.getTime() : 0;
+          return bTime - aTime; // Newest first
+        });
+        break;
+        
+      case "created-asc":
+        arr.sort((a, b) => {
+          // Handle different timestamp formats
+          const aTime = a.createdAt instanceof Date ? a.createdAt.getTime() : 0;
+          const bTime = b.createdAt instanceof Date ? b.createdAt.getTime() : 0;
+          return aTime - bTime; // Oldest first
+        });
+        break;
+        
+      case "needs-water":
+        arr.sort((a, b) => {
+          // Sort by watering needs (needs water first)
+          if (a.needsWatering && !b.needsWatering) return -1;
+          if (!a.needsWatering && b.needsWatering) return 1;
+          
+          // Secondary sort by days until watering
+          if (a.daysUntilWatering !== null && b.daysUntilWatering !== null) {
+            return a.daysUntilWatering - b.daysUntilWatering;
+          }
+          
+          return 0;
+        });
+        break;
+    }
+    
+    // Cache result with version in the key
+    state.cache.set(cacheKey, arr);
     return arr;
   });
 
-  function setSortBy(val) {
-    sortBy.value = val;
-  }
-
-  function setFilters(newFilters) {
-    filters.value = { ...filters.value, ...newFilters };
-  }
-
-  const handleSearch = async (searchTerm) => {
-    setFilters({ searchTerm });
+  // ==================== EVENT HANDLERS ====================
+  // Set sort field
+  const setSortBy = (val) => {
+    if (val !== state.sortBy) {
+      state.sortBy = val;
+      // Clear related cache entries
+      for (const key of state.cache.keys()) {
+        if (key.startsWith('sort:')) {
+          state.cache.delete(key);
+        }
+      }
+    }
   };
-  const handleFilterByGreenhouse = async (greenhouseId) => {
+
+  // Update filters
+  const setFilters = (newFilters) => {
+    const oldFilters = { ...state.filters };
+    state.filters = { ...state.filters, ...newFilters };
+    
+    // Clear related cache entries if filters changed
+    if (JSON.stringify(oldFilters) !== JSON.stringify(state.filters)) {
+      for (const key of state.cache.keys()) {
+        if (key.startsWith('filter:') || key.startsWith('sort:')) {
+          state.cache.delete(key);
+        }
+      }
+    }
+  };
+
+  // Handle search input
+  const handleSearch = debounce((searchTerm) => {
+    setFilters({ searchTerm });
+  }, 300);
+
+  // Handle greenhouse filter
+  const handleFilterByGreenhouse = (greenhouseId) => {
     setFilters({ greenhouseId });
   };
-  const clearFilters = async () => {
+
+  // Clear all filters
+  const clearFilters = () => {
     setFilters({ greenhouseId: null, searchTerm: "" });
   };
 
-  // Fetch plants from Firestore
+  // ==================== DATA FETCHING ====================
+  // Fetch plants from Firestore with caching
   const fetchPlants = async (loadMore = false) => {
-    if (loadMore && noMoreResults.value) return;
+    // Don't fetch if already loading or no more results in pagination
+    if (state.loading && !loadMore) return;
+    if (loadMore && state.noMoreResults) return;
     
+    // Set loading state
     if (!loadMore) {
-      loading.value = true;
-      error.value = null;
+      state.loading = true;
+      state.error = null;
     }
 
     try {
-      // Make sure user is authenticated
+      // Check authentication
       if (!auth.currentUser) {
         throw new Error("You must be logged in to view plants");
       }
 
-      const userPlantsRef = collection(
-        db,
-        `userData/${auth.currentUser.uid}/plants`
-      );
+      const userId = auth.currentUser.uid;
+      const userPlantsRef = collection(db, `userData/${userId}/plants`);
       
-      // Create query with pagination
+      // Base query with ordering
       let plantsQuery = query(
         userPlantsRef,
         orderBy('createdAt', 'desc'),
-        limit(itemsPerPage)
+        limit(state.itemsPerPage)
       );
       
-      // If loading more, start after the last document
-      if (loadMore && lastDoc.value) {
+      // Add startAfter if loading more
+      if (loadMore && state.lastDoc) {
         plantsQuery = query(
           userPlantsRef,
           orderBy('createdAt', 'desc'),
-          startAfter(lastDoc.value),
-          limit(itemsPerPage)
+          startAfter(state.lastDoc),
+          limit(state.itemsPerPage)
         );
       }
       
       // Apply greenhouse filter if selected
-      if (filters.value.greenhouseId) {
+      if (state.filters.greenhouseId) {
         plantsQuery = query(
           userPlantsRef,
-          where('greenhouseId', '==', filters.value.greenhouseId),
+          where('greenhouseId', '==', state.filters.greenhouseId),
           orderBy('createdAt', 'desc'),
-          limit(itemsPerPage)
+          limit(state.itemsPerPage)
         );
         
-        if (loadMore && lastDoc.value) {
+        if (loadMore && state.lastDoc) {
           plantsQuery = query(
             userPlantsRef,
-            where('greenhouseId', '==', filters.value.greenhouseId),
+            where('greenhouseId', '==', state.filters.greenhouseId),
             orderBy('createdAt', 'desc'),
-            startAfter(lastDoc.value),
-            limit(itemsPerPage)
+            startAfter(state.lastDoc),
+            limit(state.itemsPerPage)
           );
         }
       }
       
+      // Execute query
       const querySnapshot = await getDocs(plantsQuery);
       
-      // Update lastDoc for pagination
+      // Update pagination state
       const docs = querySnapshot.docs;
-      lastDoc.value = docs.length > 0 ? docs[docs.length - 1] : null;
-      noMoreResults.value = docs.length < itemsPerPage;
+      state.lastDoc = docs.length > 0 ? docs[docs.length - 1] : null;
+      state.noMoreResults = docs.length < state.itemsPerPage;
 
-      const plantsData = [];
-      querySnapshot.forEach((doc) => {
-        plantsData.push({
-          id: doc.id,
-          ...doc.data(),
-        });
-      });
+      // Process plant data
+      const plantsData = querySnapshot.docs.map(doc => 
+        processPlantData(doc.id, doc.data())
+      );
 
-      // If loading more, append to existing list; otherwise replace
+      // Update state based on load type
       if (loadMore) {
-        plants.value = [...plants.value, ...plantsData];
+        // Avoid duplicates when appending
+        const existingIds = new Set(state.plants.map(p => p.id));
+        const newPlants = plantsData.filter(p => !existingIds.has(p.id));
+        state.plants = [...state.plants, ...newPlants];
       } else {
-        plants.value = plantsData;
+        state.plants = plantsData;
+      }
+      
+      // Record fetch time
+      state.lastFetch = Date.now();
+      
+      // Clear relevant cached results
+      for (const key of state.cache.keys()) {
+        if (key.startsWith('filter:') || key.startsWith('sort:')) {
+          state.cache.delete(key);
+        }
       }
       
       return plantsData;
     } catch (err) {
       console.error("Error fetching plants: ", err);
-      error.value = "Unable to load plants. Please try again later.";
+      state.error = "Unable to load plants. Please try again later.";
       showToast("Unable to load plants. Please try again later.", "error");
       return [];
     } finally {
-      loading.value = false;
+      state.loading = false;
     }
   };
 
-  // Add plant
+  // Get a single plant by ID with caching
+  const getPlantById = async (plantId) => {
+    try {
+      if (!auth.currentUser) {
+        throw new Error("You must be logged in to view plant details");
+      }
+
+      // Check cache first
+      const cacheKey = `plant:${plantId}`;
+      const cachedData = state.cache.get(cacheKey);
+      const now = Date.now();
+      
+      // Use cache if recent (< 30 seconds old)
+      if (cachedData && (now - cachedData.timestamp < 30000)) {
+        return cachedData.data;
+      }
+      
+      // Not in cache, fetch from Firestore
+      const userId = auth.currentUser.uid;
+      const docRef = doc(db, `userData/${userId}/plants`, plantId);
+      const docSnap = await getDoc(docRef);
+
+      if (!docSnap.exists()) {
+        throw new Error("Plant not found");
+      }
+
+      // Process data for consistent format
+      const plantData = processPlantData(docSnap.id, docSnap.data());
+      
+      // Update status if needed
+      if (plantData.needsWatering && plantData.status !== "needs water") {
+        plantData.status = "needs water";
+        
+        // Update in Firestore (don't await to avoid blocking)
+        updateDoc(docRef, {
+          status: "needs water",
+          updatedAt: serverTimestamp(),
+        }).catch(e => console.error("Error updating plant status:", e));
+      }
+      
+      // Cache the result
+      state.cache.set(cacheKey, {
+        data: plantData,
+        timestamp: now
+      });
+      
+      return plantData;
+    } catch (err) {
+      console.error("Error fetching plant: ", err);
+      throw err;
+    }
+  };
+
+  // ==================== MUTATIONS ====================
+  // Add a new plant
   const addPlant = async (plantData) => {
-    isAdding.value = true;
-    error.value = null;
+    state.isAdding = true;
+    state.error = null;
     
     try {
-      // Validate data
-      if (!plantData.name) {
+      // Validate required fields
+      if (!plantData.name?.trim()) {
         throw new Error("Plant name is required");
       }
 
-      // Make sure user is authenticated
+      // Check authentication
       if (!auth.currentUser) {
         throw new Error("You must be logged in to add a plant");
       }
 
-      // Calculate watering date based on frequency
-      let daysToAdd = plantData.waterFrequency || 7;
+      // Calculate watering date
+      const daysToAdd = plantData.waterFrequency || 7;
       const wateringDate = new Date();
       wateringDate.setDate(wateringDate.getDate() + daysToAdd);
       
-      // Generate human-readable watering schedule text
-      let wateringSchedule = "Weekly"; // Default
-      switch (daysToAdd) {
-        case 1: wateringSchedule = "Every day"; break;
-        case 2: wateringSchedule = "Every 2 days"; break;
-        case 3: wateringSchedule = "Every 3 days"; break;
-        case 5: wateringSchedule = "Every 5 days"; break;
-        case 7: wateringSchedule = "Weekly"; break;
-        case 14: wateringSchedule = "Every 2 weeks"; break;
-        case 21: wateringSchedule = "Every 3 weeks"; break;
-        case 30: wateringSchedule = "Monthly"; break;
-        default: wateringSchedule = `Every ${daysToAdd} days`;
-      }
+      // Get watering schedule text
+      const wateringSchedule = getWateringScheduleText(daysToAdd);
 
-      // Prepare plant data with timestamps and user ID
+      // Current timestamp as Date object (for UI)
+      const now = new Date();
+      const userId = auth.currentUser.uid;
+      
+      // Clean greenhouse ID
+      const greenhouseId = plantData.greenhouseId?.trim() || null;
+      
+      // Prepare data for Firestore
       const newPlantData = {
-        name: plantData.name,
-        type: plantData.type || "",
-        notes: plantData.notes || "",
-        waterFrequency: plantData.waterFrequency || 7,
+        name: plantData.name.trim(),
+        type: plantData.type?.trim() || "",
+        notes: plantData.notes?.trim() || "",
+        waterFrequency: daysToAdd,
         fertiliseFrequency: plantData.fertiliseFrequency || 30,
-        userId: auth.currentUser.uid,
+        greenhouseId,
+        userId,
         createdAt: serverTimestamp(),
         updatedAt: serverTimestamp(),
         lastWatered: serverTimestamp(),
         lastFertilised: serverTimestamp(),
-        wateringSchedule: wateringSchedule,
-        wateringDate: wateringDate, 
-        status: "healthy" // Default status is healthy
+        wateringSchedule,
+        wateringDate, 
+        status: "healthy"
       };
-      
-      // Only add greenhouseId if it's defined and not empty
-      if (plantData.greenhouseId && plantData.greenhouseId.trim() !== "") {
-        newPlantData.greenhouseId = plantData.greenhouseId;
-      } else {
-        // Explicitly set to null rather than undefined
-        newPlantData.greenhouseId = null;
-      }
 
-      // Add document to Firestore
-      const userPlantsRef = collection(
-        db,
-        `userData/${auth.currentUser.uid}/plants`
-      );
+      // Create optimistic local version
+      const optimisticId = `temp-${Date.now()}`;
+      const optimisticPlant = processPlantData(optimisticId, {
+        ...newPlantData,
+        createdAt: now,
+        updatedAt: now,
+        lastWatered: now,
+        lastFertilised: now,
+        pending: true
+      });
+      
+      // Add to local state - use spread operator for better reactivity
+      state.plants = [optimisticPlant, ...state.plants];
+      // Increment version to force computed reactivity
+      state.version++;
+
+      // Add to Firestore
+      const userPlantsRef = collection(db, `userData/${userId}/plants`);
       const docRef = await addDoc(userPlantsRef, newPlantData);
       const newPlantId = docRef.id;
 
-      // Update greenhouse relationship if a greenhouse was selected
-      if (plantData.greenhouseId) {
-        await updateGreenhousePlantRelationship(newPlantId, plantData.greenhouseId);
+      // Update greenhouse relationship if specified
+      if (greenhouseId) {
+        await updateGreenhousePlantRelationship(newPlantId, greenhouseId);
       }
 
-      // Create object with ID from Firestore
-      const now = new Date();
-      const newPlantWithId = {
-        id: newPlantId,
+      // Replace optimistic entry with real one
+      const realPlant = processPlantData(newPlantId, {
         ...newPlantData,
-        // Replace server timestamps with JS date objects for immediate display
         createdAt: now,
         updatedAt: now,
-        lastWatered: now,        // Use a JavaScript Date for immediate UI display
-        lastFertilised: now      // Use a JavaScript Date for immediate UI display
-      };
+        lastWatered: now,
+        lastFertilised: now
+      });
       
-      // Add to local state
-      plants.value.unshift(newPlantWithId);
+      // Update local state with a new array for better reactivity
+      const index = state.plants.findIndex(p => p.id === optimisticId);
+      if (index !== -1) {
+        const newArray = [...state.plants];
+        newArray.splice(index, 1, realPlant);
+        state.plants = newArray;
+      }
+      
+      // Cache the new plant
+      state.cache.set(`plant:${newPlantId}`, {
+        data: realPlant,
+        timestamp: Date.now()
+      });
+      
+      // Force reactivity update
+      state.version++;
       
       showToast("Plant added successfully", "success");
-      return newPlantWithId;
+      return realPlant;
     } catch (err) {
       console.error("Error adding plant: ", err);
-      error.value = "Unable to add plant. Please try again later.";
-      showToast("Unable to add plant. Please try again later.", "error");
+      
+      // Remove optimistic entry with a new array for reactivity
+      state.plants = state.plants.filter(p => !p.pending);
+      state.version++;
+      
+      state.error = err.message || "Unable to add plant. Please try again later.";
+      showToast(state.error, "error");
       throw err;
     } finally {
-      isAdding.value = false;
+      state.isAdding = false;
     }
   };
 
-  // Update plant
+  // Update plant with optimistic UI updates
   const updatePlant = async (plantId, updateData) => {
+    // Store original state for reversion if needed
+    let originalState = null;
+    const index = state.plants.findIndex(p => p.id === plantId);
+    
+    if (index !== -1) {
+      // Create a deep copy of the plant to restore if needed
+      originalState = { 
+        index, 
+        plant: JSON.parse(JSON.stringify(state.plants[index])) 
+      };
+    }
+    
     try {
-      // Make sure user is authenticated
       if (!auth.currentUser) {
         throw new Error("You must be logged in to update a plant");
       }
 
-      // Calculate the next watering date based on the schedule if provided
-      if (updateData.wateringSchedule) {
-        let daysToAdd = 7; // Default value
-
-        if (updateData.wateringSchedule === "Every day") {
-          daysToAdd = 1;
-        } else if (updateData.wateringSchedule === "Weekly") {
-          daysToAdd = 7;
-        } else if (updateData.wateringSchedule === "Monthly") {
-          daysToAdd = 30;
-        } else {
-          // Try to extract number from strings like "Every 2 days" or "Every 2 weeks"
-          const daysMatch = updateData.wateringSchedule.match(/\d+/);
-          if (daysMatch) {
-            let extractedValue = parseInt(daysMatch[0], 10);
-            
-            // If it contains "weeks", multiply by 7
-            if (updateData.wateringSchedule.includes("week")) {
-              extractedValue *= 7;
-            }
-            
-            daysToAdd = extractedValue;
-          }
-        }
-
+      // Prepare update data
+      const cleanUpdateData = { ...updateData };
+      
+      // Calculate watering date if schedule provided
+      if (cleanUpdateData.wateringSchedule) {
+        const daysToAdd = getDaysFromSchedule(cleanUpdateData.wateringSchedule);
         const wateringDate = new Date();
         wateringDate.setDate(wateringDate.getDate() + daysToAdd);
-        updateData.wateringDate = wateringDate;
+        cleanUpdateData.wateringDate = wateringDate;
       }
 
-      // Always add updated timestamp
-      updateData.updatedAt = serverTimestamp();
+      // Add updatedAt timestamp
+      cleanUpdateData.updatedAt = serverTimestamp();
       
-      const plantRef = doc(db, `userData/${auth.currentUser.uid}/plants`, plantId);
-      await updateDoc(plantRef, updateData);
-
-      // Update in local state if this plant is loaded
-      const index = plants.value.findIndex(p => p.id === plantId);
+      const userId = auth.currentUser.uid;
+      const plantRef = doc(db, `userData/${userId}/plants`, plantId);
+      
+      // Optimistic UI update
       if (index !== -1) {
-        plants.value[index] = { ...plants.value[index], ...updateData };
+        const newArray = [...state.plants];
+        const jsUpdateData = {
+          ...cleanUpdateData,
+          updatedAt: new Date()
+        };
+        
+        const updatedPlant = processPlantData(plantId, {
+          ...state.plants[index],
+          ...jsUpdateData
+        });
+        
+        newArray[index] = updatedPlant;
+        state.plants = newArray;
+        state.version++;
       }
+      
+      // Update in Firestore
+      await updateDoc(plantRef, cleanUpdateData);
+      
+      // Clear caches and force reactivity updates
+      state.cache.delete(`plant:${plantId}`);
+      for (const key of state.cache.keys()) {
+        if (key.startsWith('filter:') || key.startsWith('sort:')) {
+          state.cache.delete(key);
+        }
+      }
+      state.version++;
       
       return true;
     } catch (err) {
       console.error("Error updating plant: ", err);
-      error.value = "Unable to update plant. Please try again later.";
-      showToast("Unable to update plant. Please try again later.", "error");
+      
+      // Revert optimistic update if we have original data
+      if (originalState) {
+        const newArray = [...state.plants];
+        newArray[originalState.index] = originalState.plant;
+        state.plants = newArray;
+        state.version++;
+      }
+      
+      state.error = err.message || "Unable to update plant. Please try again later.";
+      showToast(state.error, "error");
       throw err;
     }
   };
 
+    const updateLocalPlant = (updatedPlant) => {
+    if (!updatedPlant || !updatedPlant.id) return false;
+    
+    const index = state.plants.findIndex(p => p.id === updatedPlant.id);
+    if (index !== -1) {
+      // Create a new array to ensure reactivity
+      const newPlants = [...state.plants];
+      newPlants[index] = { 
+        ...newPlants[index], 
+        ...updatedPlant,
+        // Ensure these are properly formatted
+        formattedLastWatered: formatDate(updatedPlant.lastWatered || newPlants[index].lastWatered),
+        formattedLastFertilised: formatDate(updatedPlant.lastFertilised || newPlants[index].lastFertilised)
+      };
+      
+      // Update state with the new array
+      state.plants = newPlants;
+      
+      // Clear related caches and force reactivity update
+      state.cache.delete(`plant:${updatedPlant.id}`);
+      for (const key of state.cache.keys()) {
+        if (key.startsWith('filter:') || key.startsWith('sort:')) {
+          state.cache.delete(key);
+        }
+      }
+      state.version++;
+      
+      return true;
+    }
+    
+    return false;
+  }
+
+  // Comprehensive plant update with greenhouse relationship changes
   const updatePlantDetails = async (plantId, updateData) => {
+    // Store original state for reversion if needed
+    let originalState = null;
+    const index = state.plants.findIndex(p => p.id === plantId);
+    
+    if (index !== -1) {
+      // Create a deep copy of the plant to restore if needed
+      originalState = { 
+        index, 
+        plant: JSON.parse(JSON.stringify(state.plants[index])) 
+      };
+    }
+    
     try {
-      // Get the current plant to check for greenhouse changes
-      const plantRef = doc(db, `userData/${auth.currentUser.uid}/plants`, plantId);
+      if (!auth.currentUser) {
+        throw new Error("You must be logged in to update a plant");
+      }
+      
+      // Get current plant data to check for changes
+      const userId = auth.currentUser.uid;
+      const plantRef = doc(db, `userData/${userId}/plants`, plantId);
       const plantSnap = await getDoc(plantRef);
       
       if (!plantSnap.exists()) {
@@ -362,268 +780,250 @@ export function usePlants() {
       
       const currentPlantData = plantSnap.data();
       const oldGreenhouseId = currentPlantData.greenhouseId || null;
-      const newGreenhouseId = updateData.greenhouseId || null;
+      const newGreenhouseId = updateData.greenhouseId === "" ? null : updateData.greenhouseId;
       
-      // Create a clean update object
+      // Clean update data
       const cleanUpdateData = { ...updateData };
       
-      // Handle greenhouseId specifically - if it's an empty string, set to null
+      // Empty string becomes null for greenhouseId
       if (cleanUpdateData.greenhouseId === "") {
         cleanUpdateData.greenhouseId = null;
       }
       
-      // Calculate the next watering date based on the schedule if provided
+      // Calculate watering date if schedule provided
       if (cleanUpdateData.wateringSchedule) {
-        let daysToAdd = 7; // Default value
-
-        if (cleanUpdateData.wateringSchedule === "Every day") {
-          daysToAdd = 1;
-        } else if (cleanUpdateData.wateringSchedule === "Weekly") {
-          daysToAdd = 7;
-        } else if (cleanUpdateData.wateringSchedule === "Monthly") {
-          daysToAdd = 30;
-        } else {
-          // Try to extract number from strings like "Every 2 days" or "Every 2 weeks"
-          const daysMatch = cleanUpdateData.wateringSchedule.match(/\d+/);
-          if (daysMatch) {
-            let extractedValue = parseInt(daysMatch[0], 10);
-            
-            // If it contains "weeks", multiply by 7
-            if (cleanUpdateData.wateringSchedule.includes("week")) {
-              extractedValue *= 7;
-            }
-            
-            daysToAdd = extractedValue;
-          }
-        }
-
+        const daysToAdd = getDaysFromSchedule(cleanUpdateData.wateringSchedule);
         const wateringDate = new Date();
         wateringDate.setDate(wateringDate.getDate() + daysToAdd);
         cleanUpdateData.wateringDate = wateringDate;
       }
 
-      // Always add updated timestamp
+      // Add updatedAt timestamp
       cleanUpdateData.updatedAt = serverTimestamp();
       
-      // Update the plant document in Firestore
+      // Optimistic UI update
+      if (index !== -1) {
+        const newArray = [...state.plants];
+        const jsUpdateData = {
+          ...cleanUpdateData,
+          updatedAt: new Date()
+        };
+        
+        const updatedPlant = processPlantData(plantId, {
+          ...state.plants[index],
+          ...jsUpdateData
+        });
+        
+        newArray[index] = updatedPlant;
+        state.plants = newArray;
+        state.version++;
+      }
+      
+      // Update in Firestore
       await updateDoc(plantRef, cleanUpdateData);
       
-      // If greenhouse association has changed, update greenhouse-plant relationships
+      // Update greenhouse relationship if changed
       if (oldGreenhouseId !== newGreenhouseId) {
         await updateGreenhousePlantRelationship(plantId, newGreenhouseId, oldGreenhouseId);
       }
-
-      // Update in local state if this plant is loaded
-      const index = plants.value.findIndex(p => p.id === plantId);
-      if (index !== -1) {
-        plants.value[index] = { ...plants.value[index], ...cleanUpdateData };
-      }
+      
+      // Clear plant from cache
+      state.cache.delete(`plant:${plantId}`);
       
       return true;
     } catch (err) {
-      console.error("Error updating plant: ", err);
-      error.value = "Unable to update plant. Please try again later.";
-      showToast("Unable to update plant. Please try again later.", "error");
+      console.error("Error updating plant details: ", err);
+      
+      // Revert optimistic update if we have original data
+      if (originalState) {
+        const newArray = [...state.plants];
+        newArray[originalState.index] = originalState.plant;
+        state.plants = newArray;
+        state.version++;
+      }
+      
+      state.error = err.message || "Unable to update plant. Please try again later.";
+      showToast(state.error, "error");
       throw err;
     }
   };
 
   // Delete a plant
   const deletePlant = async (plantId) => {
-    isDeleting.value = true;
-    error.value = null;
+    state.isDeleting = true;
+    state.error = null;
     
     try {
-      // Make sure user is authenticated
       if (!auth.currentUser) {
         throw new Error("You must be logged in to delete a plant");
       }
 
       const userId = auth.currentUser.uid;
       
-      // Verify the plant exists and get its data for greenhouse association
-      const plantRef = doc(db, `userData/${userId}/plants`, plantId);
-      const plantSnap = await getDoc(plantRef);
+      // Find in local state for name and optimistic update
+      const index = state.plants.findIndex(p => p.id === plantId);
+      let plantName = "Plant";
+      let greenhouseId = null;
       
-      if (!plantSnap.exists()) {
-        throw new Error("Plant not found");
+      if (index !== -1) {
+        // Store info before removing
+        plantName = state.plants[index].name;
+        greenhouseId = state.plants[index].greenhouseId;
+        
+        // Optimistic removal with new array for reactivity
+        state.plants = state.plants.filter(p => p.id !== plantId);
+        state.version++;
+      } else {
+        // Not in local state, get from Firestore
+        const plantRef = doc(db, `userData/${userId}/plants`, plantId);
+        const plantSnap = await getDoc(plantRef);
+        
+        if (plantSnap.exists()) {
+          const data = plantSnap.data();
+          plantName = data.name;
+          greenhouseId = data.greenhouseId;
+        } else {
+          throw new Error("Plant not found");
+        }
       }
       
-      const plantData = plantSnap.data();
-      const greenhouseId = plantData.greenhouseId;
-      
-      // If the plant is associated with a greenhouse, remove it from the greenhouse
+      // Update greenhouse relationship if needed
       if (greenhouseId) {
         await updateGreenhousePlantRelationship(plantId, null, greenhouseId);
       }
 
       // Delete from Firestore
+      const plantRef = doc(db, `userData/${userId}/plants`, plantId);
       await deleteDoc(plantRef);
-
-      // Remove from local state
-      const index = plants.value.findIndex(p => p.id === plantId);
-      if (index !== -1) {
-        const deletedPlant = plants.value[index];
-        plants.value.splice(index, 1);
-        showToast(`"${deletedPlant.name}" deleted successfully`, "success");
-      }
       
+      // Clear from cache and force reactivity updates
+      state.cache.delete(`plant:${plantId}`);
+      for (const key of state.cache.keys()) {
+        if (key.startsWith('filter:') || key.startsWith('sort:')) {
+          state.cache.delete(key);
+        }
+      }
+      state.version++;
+      
+      showToast(`"${plantName}" deleted successfully`, "success");
       return true;
     } catch (err) {
       console.error("Error deleting plant: ", err);
-      error.value = "Unable to delete plant. Please try again later.";
-      showToast("Unable to delete plant. Please try again later.", "error");
+      
+      // Revert optimistic delete by refetching
+      await fetchPlants();
+      state.version++;
+      
+      state.error = err.message || "Unable to delete plant. Please try again later.";
+      showToast(state.error, "error");
       throw err;
     } finally {
-      isDeleting.value = false;
+      state.isDeleting = false;
     }
   };
 
-  // Get a single plant by ID
-  const getPlantById = async (plantId) => {
-    try {
-      // Make sure user is authenticated
-      if (!auth.currentUser) {
-        throw new Error("You must be logged in to view plant details");
-      }
-
-      // Try to access the user-specific plant collection
-      const docRef = doc(db, `userData/${auth.currentUser.uid}/plants`, plantId);
-      const docSnap = await getDoc(docRef);
-
-      if (docSnap.exists()) {
-        const plantData = { id: docSnap.id, ...docSnap.data() };
-        
-        // Update status if watering date is past
-        if (plantData.wateringDate) {
-          const wateringDate = plantData.wateringDate.seconds 
-            ? new Date(plantData.wateringDate.seconds * 1000)
-            : new Date(plantData.wateringDate);
-            
-          // Check if the current date is past the watering date
-          const currentDate = new Date();
-          if (currentDate > wateringDate && plantData.status !== "needs water") {
-            plantData.status = "needs water";
-            
-            // Update the status in Firestore
-            await updateDoc(docRef, {
-              status: "needs water",
-              updatedAt: new Date(),
-            });
-          }
-        }
-        
-        return plantData;
-      } else {
-        throw new Error("Plant not found");
-      }
-    } catch (err) {
-      console.error("Error fetching plant: ", err);
-      throw err;
-    }
-  };
-
-  // Record a plant care event
+  // Record care events (watering, fertilizing, etc)
   const recordCareEvent = async (plantId, eventType) => {
     try {
-      // Make sure user is authenticated
       if (!auth.currentUser) {
         throw new Error("You must be logged in to record care events");
       }
 
-      const now = new Date(); // Current date for immediate UI use
+      const userId = auth.currentUser.uid;
+      const now = new Date();
       const event = { type: eventType, timestamp: now };
 
-      // Status mapping for event types
-      const statusMap = {
-        Watered: "healthy",
-        Fertilised: "growing",
-        Pruned: "healthy",
-        Repotted: "growing",
-      };
-
       // Get current plant data
-      const plantRef = doc(db, `userData/${auth.currentUser.uid}/plants`, plantId);
-      const plantSnap = await getDoc(plantRef);
-
-      if (!plantSnap.exists()) {
-        throw new Error("Plant not found");
+      const plantRef = doc(db, `userData/${userId}/plants`, plantId);
+      
+      // Check cache first
+      const cacheKey = `plant:${plantId}`;
+      let plantData;
+      const cachedPlant = state.cache.get(cacheKey);
+      
+      if (cachedPlant && (Date.now() - cachedPlant.timestamp < 30000)) {
+        plantData = cachedPlant.data;
+      } else {
+        // Fetch from Firestore
+        const plantSnap = await getDoc(plantRef);
+        if (!plantSnap.exists()) {
+          throw new Error("Plant not found");
+        }
+        plantData = plantSnap.data();
       }
 
-      const plantData = plantSnap.data();
-
-      // Create the careEvents array if it doesn't exist
+      // Create/update the careEvents array
       const careEvents = plantData.careEvents || [];
       careEvents.unshift(event);
 
-      // Create base update object with common fields
+      // Base update object for Firestore
       const updateData = {
         careEvents,
         lastCareEvent: event,
-        status: statusMap[eventType] || plantData.status,
+        status: STATUS_MAP[eventType] || plantData.status,
         updatedAt: serverTimestamp(),
       };
 
-      // Create a parallel object for immediate UI update (with JS Date objects)
+      // Create JS Date version for UI updates
       const uiUpdateData = {
         careEvents,
         lastCareEvent: event,
-        status: statusMap[eventType] || plantData.status,
+        status: STATUS_MAP[eventType] || plantData.status,
         updatedAt: now,
       };
 
-      // Add watering-specific fields if this is a watering event
+      // Add event-specific fields
       if (eventType === "Watered") {
-        // Extract days from watering schedule
-        let daysToAdd = 7; // Default value
-
-        if (plantData.wateringSchedule) {
-          if (plantData.wateringSchedule === "Every day") {
-            daysToAdd = 1;
-          } else if (plantData.wateringSchedule === "Weekly") {
-            daysToAdd = 7;
-          } else if (plantData.wateringSchedule === "Monthly") {
-            daysToAdd = 30;
-          } else {
-            // Try to extract number from strings like "Every 2 days" or "Every 2 weeks"
-            const daysMatch = plantData.wateringSchedule.match(/\d+/);
-            if (daysMatch) {
-              let extractedValue = parseInt(daysMatch[0], 10);
-
-              // If it contains "weeks", multiply by 7
-              if (plantData.wateringSchedule.includes("week")) {
-                extractedValue *= 7;
-              }
-
-              daysToAdd = extractedValue;
-            }
-          }
-        }
-
+        // Get days from watering schedule
+        const daysToAdd = plantData.waterFrequency || 7;
+        
+        // Calculate next watering date
         const wateringDate = new Date();
         wateringDate.setDate(wateringDate.getDate() + daysToAdd);
 
-        // Set values for Firestore update
-        updateData.status = "healthy"; // Reset status to healthy
+        // Add to Firestore update
+        updateData.status = "healthy"; // Reset status
         updateData.wateringDate = wateringDate;
         updateData.lastWatered = serverTimestamp();
         updateData.wateringReminderFired = false;
-
-        // Set values for UI update
+        
+        // Add to UI update
         uiUpdateData.status = "healthy";
         uiUpdateData.wateringDate = wateringDate;
         uiUpdateData.lastWatered = now;
         uiUpdateData.wateringReminderFired = false;
-      }
-
-      // If this is a fertilising event, update lastFertilised date
-      if (eventType === "Fertilised") {
+      } else if (eventType === "Fertilised") {
         updateData.lastFertilised = serverTimestamp();
         uiUpdateData.lastFertilised = now;
       }
 
-      // Update Firestore with all the changes
+      // Find plant in local state for optimistic update
+      const index = state.plants.findIndex(p => p.id === plantId);
+      if (index !== -1) {
+        // Create a new array for better reactivity
+        const newArray = [...state.plants];
+        const updatedPlant = processPlantData(plantId, {
+          ...state.plants[index],
+          ...uiUpdateData
+        });
+        
+        // Apply the update optimistically
+        newArray[index] = updatedPlant;
+        state.plants = newArray;
+        state.version++;
+      }
+
+      // Update in Firestore
       await updateDoc(plantRef, updateData);
+      
+      // Clear caches
+      state.cache.delete(`plant:${plantId}`);
+      for (const key of state.cache.keys()) {
+        if (key.startsWith('filter:') || key.startsWith('sort:')) {
+          state.cache.delete(key);
+        }
+      }
+      state.version++;
 
       // Show toast with plant name
       showToast(
@@ -631,30 +1031,29 @@ export function usePlants() {
         "success"
       );
 
-      // Return updated plant data with the changes for immediate UI update
-      // Use JS Date objects instead of serverTimestamp()
-      return {
-        id: plantId,
+      // Return updated plant data
+      return processPlantData(plantId, {
         ...plantData,
-        ...uiUpdateData,
-      };
+        ...uiUpdateData
+      });
     } catch (err) {
       console.error("Error recording care event: ", err);
+      showToast("Unable to record care event. Please try again later.", "error");
       throw err;
     }
   };
 
-  // Update the relationship between a plant and a greenhouse
+  // Update the relationship between plant and greenhouse
   const updateGreenhousePlantRelationship = async (plantId, newGreenhouseId, oldGreenhouseId = null) => {
     try {
       const userId = auth.currentUser.uid;
-      
-      // Create a document reference for the plant
       const plantRef = doc(db, `userData/${userId}/plants`, plantId);
       
-      // If the plant was previously in a greenhouse, remove it from that greenhouse
+      // Use a batch for more efficient updates
+      const batch = writeBatch(db);
+      
+      // Remove from old greenhouse if specified
       if (oldGreenhouseId) {
-        // Get the old greenhouse document
         const oldGreenhouseRef = doc(db, `userData/${userId}/greenhouses`, oldGreenhouseId);
         const oldGreenhouseSnap = await getDoc(oldGreenhouseRef);
         
@@ -662,29 +1061,24 @@ export function usePlants() {
           const oldGreenhouseData = oldGreenhouseSnap.data();
           const plants = oldGreenhouseData.plants || [];
           
-          // Remove this plant from the array by filtering out its path
-          // Some may be references, some may be strings, so handle both cases
+          // Remove plant from array
           const plantPath = `userData/${userId}/plants/${plantId}`;
           const updatedPlants = plants.filter(plant => {
-            // If it's a reference with path property
-            if (plant.path) {
-              return plant.path !== plantPath;
-            }
-            // If it's just the ID as a string
+            if (plant.path) return plant.path !== plantPath;
+            if (plant.id) return plant.id !== plantId;
             return plant !== plantId;
           });
           
-          // Update the greenhouse document
-          await updateDoc(oldGreenhouseRef, {
+          // Add to batch
+          batch.update(oldGreenhouseRef, {
             plants: updatedPlants,
             updatedAt: serverTimestamp()
           });
         }
       }
       
-      // If the plant is being added to a greenhouse, add it to that greenhouse
+      // Add to new greenhouse if specified
       if (newGreenhouseId) {
-        // Get the new greenhouse document
         const newGreenhouseRef = doc(db, `userData/${userId}/greenhouses`, newGreenhouseId);
         const newGreenhouseSnap = await getDoc(newGreenhouseRef);
         
@@ -692,51 +1086,58 @@ export function usePlants() {
           const newGreenhouseData = newGreenhouseSnap.data();
           const plants = newGreenhouseData.plants || [];
           
-          // Check if the plant reference is already in the array
+          // Check if plant is already in array
           const plantPath = `userData/${userId}/plants/${plantId}`;
           const alreadyExists = plants.some(plant => {
-            // If it's a reference with path property
-            if (plant.path) {
-              return plant.path === plantPath;
-            }
-            // If it's just the ID as a string
+            if (plant.path) return plant.path === plantPath;
+            if (plant.id) return plant.id === plantId;
             return plant === plantId;
           });
           
-          // Only add the plant if it's not already in the array
+          // Only add if not already present
           if (!alreadyExists) {
-            // Add the document reference to the array, not just the ID
+            // Add plant reference
             plants.push(plantRef);
             
-            // Update the greenhouse document
-            await updateDoc(newGreenhouseRef, {
-              plants: plants,
+            // Add to batch
+            batch.update(newGreenhouseRef, {
+              plants,
               updatedAt: serverTimestamp()
             });
           }
         }
       }
+      
+      // Commit all changes in a single batch
+      await batch.commit();
+      return true;
     } catch (err) {
       console.error("Error updating greenhouse-plant relationship:", err);
-      showToast("Error updating greenhouse relationship", "error");
-      // We don't throw here to prevent blocking the main operation
+      // Don't throw to avoid blocking the main operation
+      return false;
     }
   };
 
-  // Add this function to get plants without a greenhouse
+  // Get plants without a greenhouse
   const getPlantsWithoutGreenhouse = async () => {
     try {
-      // Make sure user is authenticated
       if (!auth.currentUser) {
         throw new Error("You must be logged in to view plants");
       }
-
-      const userPlantsRef = collection(
-        db,
-        `userData/${auth.currentUser.uid}/plants`
-      );
       
-      // Create query to get plants without a greenhouse
+      // Check cache first
+      const cacheKey = "plants-without-greenhouse";
+      const cachedData = state.cache.get(cacheKey);
+      
+      if (cachedData && (Date.now() - cachedData.timestamp < 30000)) {
+        return cachedData.data;
+      }
+      
+      // Not in cache, fetch from Firestore
+      const userId = auth.currentUser.uid;
+      const userPlantsRef = collection(db, `userData/${userId}/plants`);
+      
+      // Query for plants without greenhouse
       const plantsQuery = query(
         userPlantsRef,
         where("greenhouseId", "==", null)
@@ -744,190 +1145,195 @@ export function usePlants() {
       
       const querySnapshot = await getDocs(plantsQuery);
       
-      const plantsData = [];
-      querySnapshot.forEach((doc) => {
-        plantsData.push({
-          id: doc.id,
-          ...doc.data()
-        });
+      // Process plants with consistent format
+      const plants = querySnapshot.docs.map(doc => 
+        processPlantData(doc.id, doc.data())
+      );
+      
+      // Cache the result
+      state.cache.set(cacheKey, {
+        data: plants,
+        timestamp: Date.now()
       });
       
-      return plantsData;
+      return plants;
     } catch (err) {
       console.error("Error fetching plants without greenhouse:", err);
       throw err;
     }
   };
 
-  // --- Computed helpers ---
-  function getLastWateredFormatted(plant) {
-    if (!plant.lastWatered) return "Never";
-    try {
-      if (plant.lastWatered.seconds) {
-        return new Date(plant.lastWatered.seconds * 1000).toLocaleDateString();
-      }
-      if (plant.lastWatered.type === "server_timestamp") {
-        return new Date().toLocaleDateString();
-      }
-      if (plant.lastWatered instanceof Date) {
-        return plant.lastWatered.toLocaleDateString();
-      }
-      if (typeof plant.lastWatered === "string") {
-        return new Date(plant.lastWatered).toLocaleDateString();
-      }
-      return new Date().toLocaleDateString();
-    } catch {
-      return "Recently";
+  // ==================== HELPER FUNCTIONS ====================
+  // Check if plant needs water
+  const needsWater = (plant) => {
+    if (!plant) return false;
+    
+    // Use pre-computed property if available
+    if (plant.needsWatering !== undefined) {
+      return plant.needsWatering;
     }
-  }
-
-  function getLastFertilisedFormatted(plant) {
-    if (!plant.lastFertilised) return "Never";
-    try {
-      if (plant.lastFertilised.seconds) {
-        return new Date(plant.lastFertilised.seconds * 1000).toLocaleDateString();
+    
+    // Check watering date if available
+    if (plant.wateringDate) {
+      const wateringDate = getNormalizedDate(plant.wateringDate);
+      if (wateringDate) {
+        return new Date() > wateringDate;
       }
-      if (plant.lastFertilised.type === "server_timestamp") {
-        return new Date().toLocaleDateString();
-      }
-      if (plant.lastFertilised instanceof Date) {
-        return plant.lastFertilised.toLocaleDateString();
-      }
-      if (typeof plant.lastFertilised === "string") {
-        return new Date(plant.lastFertilised).toLocaleDateString();
-      }
-      return new Date().toLocaleDateString();
-    } catch {
-      return "Recently";
     }
-  }
-
-  function needsWater(plant) {
+    
+    // Otherwise check based on days since watering
     if (!plant.lastWatered) return true;
-    try {
-      const now = new Date();
-      let lastWatered;
-      if (plant.lastWatered.seconds) {
-        lastWatered = new Date(plant.lastWatered.seconds * 1000);
-      } else if (plant.lastWatered._methodName === "serverTimestamp" || plant.lastWatered.type === "server_timestamp") {
-        return false;
-      } else if (plant.lastWatered instanceof Date) {
-        lastWatered = plant.lastWatered;
-      } else if (typeof plant.lastWatered === "string") {
-        lastWatered = new Date(plant.lastWatered);
-      } else if (typeof plant.lastWatered === "number") {
-        lastWatered = new Date(plant.lastWatered);
-      } else {
-        lastWatered = new Date(plant.lastWatered);
-      }
-      if (isNaN(lastWatered.getTime())) return false;
-      const daysSinceWatered = Math.floor((now - lastWatered) / (1000 * 60 * 60 * 24));
-      return daysSinceWatered >= (plant.waterFrequency || 7);
-    } catch {
-      return false;
-    }
-  }
+    
+    const lastWatered = getNormalizedDate(plant.lastWatered);
+    if (!lastWatered) return false;
+    
+    const now = new Date();
+    const daysSinceWatered = Math.floor((now - lastWatered) / (1000 * 60 * 60 * 24));
+    return daysSinceWatered >= (plant.waterFrequency || 7);
+  };
 
-  function needsFertiliser(plant) {
+  // Check if plant needs fertilizer
+  const needsFertiliser = (plant) => {
+    if (!plant) return false;
+    
+    // Use pre-computed property if available
+    if (plant.needsFertilizing !== undefined) {
+      return plant.needsFertilizing;
+    }
+    
     if (!plant.lastFertilised) return true;
-    try {
-      const now = new Date();
-      let lastFertilised;
-      if (plant.lastFertilised.seconds) {
-        lastFertilised = new Date(plant.lastFertilised.seconds * 1000);
-      } else if (plant.lastFertilised._methodName === "serverTimestamp" || plant.lastFertilised.type === "server_timestamp") {
-        return false;
-      } else if (plant.lastFertilised instanceof Date) {
-        lastFertilised = plant.lastFertilised;
-      } else if (typeof plant.lastFertilised === "string") {
-        lastFertilised = new Date(plant.lastFertilised);
-      } else if (typeof plant.lastFertilised === "number") {
-        lastFertilised = new Date(plant.lastFertilised);
-      } else {
-        lastFertilised = new Date(plant.lastFertilised);
-      }
-      if (isNaN(lastFertilised.getTime())) return false;
-      const daysSinceFertilised = Math.floor((now - lastFertilised) / (1000 * 60 * 60 * 24));
-      return daysSinceFertilised >= (plant.fertiliseFrequency || 30);
-    } catch {
-      return false;
+    
+    const lastFertilised = getNormalizedDate(plant.lastFertilised);
+    if (!lastFertilised) return false;
+    
+    const now = new Date();
+    const daysSinceFertilised = Math.floor((now - lastFertilised) / (1000 * 60 * 60 * 24));
+    return daysSinceFertilised >= (plant.fertiliseFrequency || 30);
+  };
+
+  // Format last watered date
+  const getLastWateredFormatted = (plant) => {
+    if (!plant) return "Never";
+    
+    // Use pre-computed value if available
+    if (plant.formattedLastWatered) {
+      return plant.formattedLastWatered;
     }
-  }
+    
+    return formatDate(plant.lastWatered, "Never");
+  };
 
-  // --- Care event handlers ---
+  // Format last fertilised date
+  const getLastFertilisedFormatted = (plant) => {
+    if (!plant) return "Never";
+    
+    // Use pre-computed value if available
+    if (plant.formattedLastFertilised) {
+      return plant.formattedLastFertilised;
+    }
+    
+    return formatDate(plant.lastFertilised, "Never");
+  };
+
+  // ==================== EVENT HANDLERS ====================
+  // Water plant shorthand
   const handleWater = async (plant) => {
-    await recordCareEvent(plant.id, "Watered");
+    return await recordCareEvent(plant.id, "Watered");
   };
+  
+  // Fertilize plant shorthand
   const handleFertilise = async (plant) => {
-    await recordCareEvent(plant.id, "Fertilised");
+    return await recordCareEvent(plant.id, "Fertilised");
   };
 
-  // Add these handler functions to the composable for use in your component
-  const handleWaterPlant = async (plantId) => {
-    await recordCareEvent(plantId, "Watered");
-  };
+  // Alternative naming for handlers
+  const handleWaterPlant = handleWater;
+  const handleFertilisePlant = handleFertilise;
+  const handleUpdatePlant = updatePlant;
 
-  const handleFertilisePlant = async (plantId) => {
-    await recordCareEvent(plantId, "Fertilised");
-  };
-
-  const handleUpdatePlant = async (plantId, updateData) => {
-    await updatePlant(plantId, updateData);
-  };
-
-  // Reset state (useful when component unmounts)
+  // Reset state
   const reset = () => {
-    plants.value = [];
-    loading.value = true;
-    error.value = null;
-    isAdding.value = false;
-    isDeleting.value = false;
-    lastDoc.value = null;
-    noMoreResults.value = false;
-    filters.value = {
+    state.plants = [];
+    state.loading = false;
+    state.error = null;
+    state.isAdding = false;
+    state.isDeleting = false;
+    state.lastDoc = null;
+    state.noMoreResults = false;
+    state.filters = {
       greenhouseId: null,
       searchTerm: '',
     };
+    state.cache.clear();
   };
 
+  // ==================== WATCH FILTERS FOR AUTO-UPDATES ====================
+  // Watch for filter changes to trigger search
+  watch(() => state.filters, (newFilters, oldFilters) => {
+    // Only check if initialized and actually changed
+    if (JSON.stringify(newFilters) !== JSON.stringify(oldFilters) && state.plants.length > 0) {
+      // Clear relevant cache entries
+      for (const key of state.cache.keys()) {
+        if (key.startsWith('filter:') || key.startsWith('sort:')) {
+          state.cache.delete(key);
+        }
+      }
+    }
+  }, { deep: true });
+
+  // ==================== EXPORTS ====================
   return {
-    // State
-    plants,
+    // Create separate refs for key state items instead of all toRefs
+    plants: computed(() => state.plants),
+    loading: computed(() => state.loading),
+    error: computed(() => state.error),
+    isAdding: computed(() => state.isAdding),
+    isDeleting: computed(() => state.isDeleting),
+    noMoreResults: computed(() => state.noMoreResults),
+    filters: computed(() => state.filters),
+    sortBy: computed(() => state.sortBy),
+    version: computed(() => state.version),
+    
+    // Expose computed properties
     filteredPlants,
     sortedPlants,
-    loading,
-    error,
-    isAdding,
-    isDeleting,
-    noMoreResults,
-    filters,
-    sortBy,
     
-    // Methods
+    // Methods remain the same...
     fetchPlants,
-    setFilters,
-    setSortBy,
+    getPlantById,
     addPlant,
     updatePlant,
     updatePlantDetails,
     deletePlant,
-    getPlantById,
     recordCareEvent,
-    reset,
-    getWateringScheduleText,
     updateGreenhousePlantRelationship,
-    getPlantsWithoutGreenhouse,  // Add the new function
+    getPlantsWithoutGreenhouse,
+    
+    // Filter/sort operations
+    setFilters,
+    setSortBy,
+    handleSearch,
+    handleFilterByGreenhouse,
+    clearFilters,
+    
+    // Format helpers
+    getWateringScheduleText,
     getLastWateredFormatted,
     getLastFertilisedFormatted,
     needsWater,
     needsFertiliser,
+    
+    // Care handlers
     handleWater,
     handleFertilise,
-    handleSearch,
-    handleFilterByGreenhouse,
-    clearFilters,
     handleWaterPlant,
     handleFertilisePlant,
     handleUpdatePlant,
+    
+    // State management
+    reset,
+    
+    // Update a plant in local state without a Firebase update
+    updateLocalPlant,
   };
 }

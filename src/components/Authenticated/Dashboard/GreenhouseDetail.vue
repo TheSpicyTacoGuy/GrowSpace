@@ -198,7 +198,7 @@ onMounted(async () => {
                 :to="{ name: 'greenhouses' }"
                 class="btn btn-outline-primary me-3"
               >
-                &larr; Back to Greenhouses
+                <i class="bi bi-arrow-left"></i>
               </router-link>
               <h2 class="mb-0 text-primary">
                 <i class="bi bi-houses-fill me-2"></i>

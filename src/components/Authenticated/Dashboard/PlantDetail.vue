@@ -202,7 +202,7 @@ onMounted(() => {
             :to="{ name: 'plants' }"
             class="btn btn-outline-primary me-3"
           >
-            &larr; Back to Plants
+            <i class="bi bi-arrow-left"></i>
           </router-link>
           <h1 class="mb-0">{{ plant.name }}</h1>
           <span class="badge ms-3 fs-6" :class="getStatusColor(plant.status)">

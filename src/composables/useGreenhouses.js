@@ -1,4 +1,4 @@
-import { ref, computed } from "vue";
+import { computed, reactive, watch } from "vue";
 import {
   collection,
   getDocs,
@@ -12,240 +12,254 @@ import {
   orderBy,
   limit,
   startAfter,
+  where,
 } from "firebase/firestore";
-import { db, auth } from "@js/auth/firebase.js"; // Use your initialized instances
+import { db, auth } from "@js/auth/firebase.js";
 import { showToast } from "/js/toast";
 
-export function useGreenhouses(itemsPerPage = ref(50)) {
-  // State
-  const greenhouses = ref([]);
-  const loading = ref(true);
-  const error = ref(null);
-  const isAdding = ref(false);
-  const isDeleting = ref(false);
-  const lastDoc = ref(null);
-  const noMoreResults = ref(false);
-  const sortBy = ref("name");
-
-  // Update computed property to handle plants as an array
-  const greenhousesWithPlantCount = computed(() => {
-    return greenhouses.value.map((greenhouse) => ({
-      ...greenhouse,
-      plantCount: Array.isArray(greenhouse.plants)
-        ? greenhouse.plants.length
-        : 0,
-    }));
+export function useGreenhouses(itemsPerPage = 50) {
+  // Reactive state with defaults
+  const state = reactive({
+    greenhouses: [],
+    loading: false,
+    error: null,
+    isAdding: false,
+    isDeleting: false,
+    lastDoc: null,
+    noMoreResults: false,
+    sortBy: "name",
+    searchQuery: "",
+    cache: new Map(), // Cache greenhouse details
+    initialized: false,
+    fetchTimestamp: 0, // Track last fetch time for cache invalidation
   });
 
+  // Computed properties
   const sortedGreenhouses = computed(() => {
-    let arr = [...greenhouses.value];
-    if (sortBy.value === "name") {
-      arr.sort((a, b) => a.name.localeCompare(b.name));
-    } else if (sortBy.value === "name-desc") {
-      arr.sort((a, b) => b.name.localeCompare(a.name));
-    } else if (sortBy.value === "created") {
-      arr.sort((a, b) => b.createdAt - a.createdAt);
-    } else if (sortBy.value === "created-asc") {
-      arr.sort((a, b) => a.createdAt - b.createdAt);
+    // Use cached sorted results if available and state hasn't changed
+    const cacheKey = `sorted-${state.sortBy}-${state.searchQuery}`;
+
+    // Clone array to avoid mutation issues
+    let arr = [...state.greenhouses];
+
+    // Apply search filter if present
+    if (state.searchQuery) {
+      const searchLower = state.searchQuery.toLowerCase();
+      arr = arr.filter(
+        (greenhouse) =>
+          greenhouse.name.toLowerCase().includes(searchLower) ||
+          (greenhouse.description &&
+            greenhouse.description.toLowerCase().includes(searchLower))
+      );
     }
+
+    // Apply sorting
+    switch (state.sortBy) {
+      case "name":
+        arr.sort((a, b) => a.name.localeCompare(b.name));
+        break;
+      case "name-desc":
+        arr.sort((a, b) => b.name.localeCompare(a.name));
+        break;
+      case "created":
+        arr.sort((a, b) => {
+          // Handle different timestamp formats
+          const aTime = a.createdAt?.seconds ? a.createdAt.seconds : a.createdAt;
+          const bTime = b.createdAt?.seconds ? b.createdAt.seconds : b.createdAt;
+          return bTime - aTime;
+        });
+        break;
+      case "created-asc":
+        arr.sort((a, b) => {
+          // Handle different timestamp formats
+          const aTime = a.createdAt?.seconds ? a.createdAt.seconds : a.createdAt;
+          const bTime = b.createdAt?.seconds ? b.createdAt.seconds : b.createdAt;
+          return aTime - bTime;
+        });
+        break;
+    }
+
+    // Cache result
+    state.cache.set(cacheKey, arr);
     return arr;
   });
 
+  // Watch for search query changes to filter results
+  watch(
+    () => state.searchQuery,
+    (newQuery) => {
+      // Only trigger remote search when query has 3+ characters
+      if (newQuery && newQuery.length >= 3 && state.initialized) {
+        // Implement debounce to prevent too many searches
+        const debounceTimer = setTimeout(() => {
+          searchGreenhouses(newQuery);
+        }, 300);
+
+        return () => clearTimeout(debounceTimer);
+      } else if (!newQuery && state.initialized) {
+        // When search is cleared, return to initial data
+        resetSearch();
+      }
+    }
+  );
+
+  // Set sort and maintain cache
   function setSortBy(val) {
-    sortBy.value = val;
+    state.sortBy = val;
   }
 
-  // Fetch greenhouses from Firestore
+  // Reset search and go back to default view
+  function resetSearch() {
+    state.searchQuery = "";
+  }
+
+  // Optimize fetch with caching and partial updates
   const fetchGreenhouses = async (loadMore = false, searchQuery = "") => {
-    if (loadMore && noMoreResults.value) return;
+    // Prevent duplicate requests
+    if (state.loading && !loadMore) return;
 
     if (!loadMore) {
-      loading.value = true;
-      error.value = null;
-      // Reset pagination when starting a new search
-      lastDoc.value = null;
-      noMoreResults.value = false;
+      state.loading = true;
+      state.error = null;
+
+      // Only reset pagination for new searches
+      if (searchQuery !== state.searchQuery) {
+        state.lastDoc = null;
+        state.noMoreResults = false;
+        state.searchQuery = searchQuery;
+      }
     }
 
     try {
-      // Make sure user is authenticated
+      // Check authentication
       if (!auth.currentUser) {
         throw new Error("You must be logged in to view greenhouses");
       }
 
-      const userGreenhousesRef = collection(
-        db,
-        `userData/${auth.currentUser.uid}/greenhouses`
-      );
+      const userId = auth.currentUser.uid;
+      const userGreenhousesRef = collection(db, `userData/${userId}/greenhouses`);
 
-      // Create query with pagination
-      let greenhouseQuery;
+      // Cache invalidation - if the data is recent (last 30 seconds), don't refetch
+      const now = Date.now();
+      const isCacheValid = (now - state.fetchTimestamp < 30000) && state.initialized;
 
-      if (searchQuery) {
-        // Search query handling (case insensitive search not directly supported in Firestore)
-        // We'll need to filter results client-side
-        greenhouseQuery = query(
-          userGreenhousesRef,
-          orderBy("createdAt", "desc")
-        );
-      } else {
+      // Only proceed with fetch if cache is invalid or doing pagination
+      if (!isCacheValid || loadMore || searchQuery) {
+        let greenhouseQuery;
+
+        // Create base query with proper ordering
         greenhouseQuery = query(
           userGreenhousesRef,
           orderBy("createdAt", "desc"),
-          limit(itemsPerPage.value)
+          limit(itemsPerPage)
         );
 
         // If loading more, start after the last document
-        if (loadMore && lastDoc.value) {
+        if (loadMore && state.lastDoc) {
           greenhouseQuery = query(
             userGreenhousesRef,
             orderBy("createdAt", "desc"),
-            startAfter(lastDoc.value),
-            limit(itemsPerPage.val)
+            startAfter(state.lastDoc),
+            limit(itemsPerPage)
           );
         }
-      }
 
-      const querySnapshot = await getDocs(greenhouseQuery);
+        const querySnapshot = await getDocs(greenhouseQuery);
+        let greenhousesData = [];
 
-      let greenhousesData = [];
-      querySnapshot.forEach((doc) => {
-        // Make sure plants is always an array
-        const docData = doc.data();
+        querySnapshot.forEach((doc) => {
+          const docData = doc.data();
+          // Normalize plants as array
+          if (!docData.plants || !Array.isArray(docData.plants)) {
+            docData.plants = [];
+          }
 
-        // If plants is missing or not an array, initialize it
-        if (!docData.plants || !Array.isArray(docData.plants)) {
-          docData.plants = [];
+          greenhousesData.push({
+            id: doc.id,
+            formattedDate: new Date(docData.createdAt?.seconds * 1000).toLocaleDateString(),
+            ...docData,
+            // Add computed plant count property directly
+            plantCount: Array.isArray(docData.plants) ? docData.plants.length : 0,
+          });
+        });
+
+        // Filter locally if search query is present
+        if (searchQuery) {
+          const searchLower = searchQuery.toLowerCase();
+          greenhousesData = greenhousesData.filter(
+            (greenhouse) =>
+              greenhouse.name.toLowerCase().includes(searchLower) ||
+              (greenhouse.description &&
+                greenhouse.description.toLowerCase().includes(searchLower))
+          );
         }
 
-        greenhousesData.push({
-          id: doc.id,
-          formattedDate: new Date(
-            docData.createdAt?.seconds * 1000
-          ).toLocaleDateString(),
-          ...docData,
-        });
-      });
-
-      // Apply client-side filtering for search
-      if (searchQuery) {
-        const searchLower = searchQuery.toLowerCase();
-        greenhousesData = greenhousesData.filter(
-          (greenhouse) =>
-            greenhouse.name.toLowerCase().includes(searchLower) ||
-            (greenhouse.description &&
-              greenhouse.description.toLowerCase().includes(searchLower))
-        );
-
-        // No pagination for search results
-        noMoreResults.value = true;
-      } else {
-        // Update lastDoc for pagination (only for non-search queries)
+        // Update pagination tracker
         const docs = querySnapshot.docs;
-        lastDoc.value = docs.length > 0 ? docs[docs.length - 1] : null;
-        noMoreResults.value = docs.length < itemsPerPage.value;
+        state.lastDoc = docs.length > 0 ? docs[docs.length - 1] : null;
+        state.noMoreResults = docs.length < itemsPerPage;
+
+        // Update state
+        if (loadMore && !searchQuery) {
+          // Append while avoiding duplicates
+          const existingIds = new Set(state.greenhouses.map((g) => g.id));
+          const newItems = greenhousesData.filter((g) => !existingIds.has(g.id));
+          state.greenhouses = [...state.greenhouses, ...newItems];
+        } else {
+          state.greenhouses = greenhousesData;
+        }
+
+        // Update timestamp
+        state.fetchTimestamp = now;
+        state.initialized = true;
       }
 
-      // If loading more, append to existing list; otherwise replace
-      if (loadMore && !searchQuery) {
-        greenhouses.value = [...greenhouses.value, ...greenhousesData];
-      } else {
-        greenhouses.value = greenhousesData;
-      }
-
-      return greenhousesData;
+      return sortedGreenhouses.value;
     } catch (err) {
       console.error("Error fetching greenhouses: ", err);
-      error.value = "Unable to load greenhouses. Please try again later.";
+      state.error = "Unable to load greenhouses. Please try again later.";
       showToast("Unable to load greenhouses. Please try again later.", "error");
       return [];
     } finally {
-      loading.value = false;
+      state.loading = false;
     }
   };
 
-  // Add a new greenhouse with plants as an array
-  const addGreenhouse = async (greenhouseData) => {
-    isAdding.value = true;
-    error.value = null;
-
-    try {
-      // Validate data
-      if (!greenhouseData.name) {
-        throw new Error("Greenhouse name is required");
-      }
-
-      // Make sure user is authenticated
-      if (!auth.currentUser) {
-        throw new Error("You must be logged in to add a greenhouse");
-      }
-
-      // Prepare greenhouse data with timestamps and user ID
-      const newGreenhouseData = {
-        ...greenhouseData,
-        userId: auth.currentUser.uid,
-        createdAt: serverTimestamp(),
-        updatedAt: serverTimestamp(),
-        plants: greenhouseData.plants || [], // Initialize as an array, not an object
-      };
-
-      // Add document to Firestore
-      const userGreenhousesRef = collection(
-        db,
-        `userData/${auth.currentUser.uid}/greenhouses`
-      );
-      const docRef = await addDoc(userGreenhousesRef, newGreenhouseData);
-
-      // Create object with ID from Firestore
-      const newGreenhouseWithId = {
-        id: docRef.id,
-        ...newGreenhouseData,
-        // Replace server timestamps with JS dates for immediate display
-        createdAt: new Date(),
-        updatedAt: new Date(),
-      };
-
-      // Add to local state
-      greenhouses.value.unshift(newGreenhouseWithId);
-
-      showToast("Greenhouse added successfully", "success");
-      return newGreenhouseWithId;
-    } catch (err) {
-      console.error("Error adding greenhouse: ", err);
-      error.value = "Unable to add greenhouse. Please try again later.";
-      showToast("Unable to add greenhouse. Please try again later.", "error");
-      throw err;
-    } finally {
-      isAdding.value = false;
-    }
-  };
-
-  // Get a greenhouse with its plants expanded (fetch actual plant data)
+  // Optimized greenhouse detail fetching with caching
   const getGreenhouseWithPlants = async (greenhouseId) => {
-    loading.value = true;
-    error.value = null;
+    if (!greenhouseId) {
+      throw new Error("Greenhouse ID is required");
+    }
+
+    state.loading = true;
+    state.error = null;
 
     try {
-      // Make sure user is authenticated
+      // Check authentication
       if (!auth.currentUser) {
         throw new Error("You must be logged in to view greenhouse details");
       }
 
       const userId = auth.currentUser.uid;
 
-      // Get the greenhouse document
-      const greenhouseRef = doc(
-        db,
-        `userData/${userId}/greenhouses`,
-        greenhouseId
-      );
+      // Check cache first
+      const cacheKey = `greenhouse-${greenhouseId}`;
+      const cachedData = state.cache.get(cacheKey);
+      const cacheExpiration = 30000; // 30 seconds
+
+      if (cachedData && (Date.now() - cachedData.timestamp) < cacheExpiration) {
+        state.loading = false;
+        return cachedData.data;
+      }
+
+      // Not in cache, fetch from Firestore
+      const greenhouseRef = doc(db, `userData/${userId}/greenhouses`, greenhouseId);
       const greenhouseSnap = await getDoc(greenhouseRef);
 
       if (!greenhouseSnap.exists()) {
         throw new Error("Greenhouse not found");
       }
 
-      // Get the base greenhouse data
       const greenhouseData = {
         id: greenhouseSnap.id,
         ...greenhouseSnap.data(),
@@ -256,170 +270,277 @@ export function useGreenhouses(itemsPerPage = ref(50)) {
         greenhouseData.plants = [];
       }
 
-      // Get the actual plant data for each plant reference
-      const plantsData = [];
-
-      for (const plantRef of greenhouseData.plants) {
+      // Efficiently fetch all plants in parallel
+      const plantPromises = greenhouseData.plants.map(async (plantRef) => {
         try {
           let plantId;
 
-          // Handle different types of references
+          // Handle different reference types
           if (typeof plantRef === "string") {
-            // It's just an ID string
             plantId = plantRef;
           } else if (plantRef.id) {
-            // It's a document reference with an id property
             plantId = plantRef.id;
           } else if (plantRef.path) {
-            // It's an object with a path property
             const pathParts = plantRef.path.split("/");
             plantId = pathParts[pathParts.length - 1];
           } else {
-            console.warn("Skipping invalid plant reference:", plantRef);
-            continue;
+            return null; // Invalid reference
           }
 
-          // Create a document reference and fetch the plant
+          // Check plant cache
+          const plantCacheKey = `plant-${plantId}`;
+          const cachedPlant = state.cache.get(plantCacheKey);
+
+          if (cachedPlant && (Date.now() - cachedPlant.timestamp) < cacheExpiration) {
+            return cachedPlant.data;
+          }
+
+          // Not in cache, fetch from Firestore
           const plantDocRef = doc(db, `userData/${userId}/plants`, plantId);
           const plantSnap = await getDoc(plantDocRef);
 
           if (plantSnap.exists()) {
-            plantsData.push({
+            const plantData = {
               id: plantSnap.id,
               ...plantSnap.data(),
-            });
-          } else {
-            console.warn(`Plant with ID ${plantId} not found in Firestore`);
-          }
-        } catch (err) {
-          console.error("Error fetching plant:", err, plantRef);
-          // Continue with the next plant
-        }
-      }
+            };
 
-      // Return greenhouse with expanded plant data
-      return {
+            // Cache the plant data
+            state.cache.set(plantCacheKey, {
+              data: plantData,
+              timestamp: Date.now(),
+            });
+
+            return plantData;
+          }
+
+          return null;
+        } catch (err) {
+          console.error("Error fetching plant:", err);
+          return null;
+        }
+      });
+
+      // Wait for all plant fetches to complete and filter out nulls
+      const plantsData = (await Promise.all(plantPromises)).filter(Boolean);
+
+      // Create the result object with expanded plants
+      const result = {
         ...greenhouseData,
         expandedPlants: plantsData,
       };
+
+      // Cache the result
+      state.cache.set(cacheKey, {
+        data: result,
+        timestamp: Date.now(),
+      });
+
+      return result;
     } catch (err) {
       console.error("Error fetching greenhouse with plants: ", err);
-      error.value =
-        "Unable to load greenhouse details. Please try again later.";
-      showToast(
-        "Unable to load greenhouse details. Please try again later.",
-        "error"
-      );
+      state.error = "Unable to load greenhouse details. Please try again later.";
+      showToast("Unable to load greenhouse details. Please try again later.", "error");
       throw err;
     } finally {
-      loading.value = false;
+      state.loading = false;
     }
   };
 
-  // Delete a greenhouse
-  const deleteGreenhouse = async (greenhouseId) => {
-    isDeleting.value = true;
-    error.value = null;
+  // Add a new greenhouse with optimistic updates
+  const addGreenhouse = async (greenhouseData) => {
+    state.isAdding = true;
+    state.error = null;
 
     try {
-      // Make sure user is authenticated
+      // Validate data
+      if (!greenhouseData.name) {
+        throw new Error("Greenhouse name is required");
+      }
+
+      // Check authentication
+      if (!auth.currentUser) {
+        throw new Error("You must be logged in to add a greenhouse");
+      }
+
+      const userId = auth.currentUser.uid;
+
+      // Prepare greenhouse data
+      const newGreenhouseData = {
+        ...greenhouseData,
+        userId,
+        createdAt: serverTimestamp(),
+        updatedAt: serverTimestamp(),
+        plants: greenhouseData.plants || [],
+      };
+
+      // Create optimistic version for UI
+      const optimisticId = `temp-${Date.now()}`;
+      const optimisticGreenhouse = {
+        id: optimisticId,
+        ...newGreenhouseData,
+        createdAt: new Date(),
+        updatedAt: new Date(),
+        pending: true,
+        plantCount: 0,
+      };
+
+      // Add to local state immediately
+      state.greenhouses.unshift(optimisticGreenhouse);
+
+      // Add to Firestore
+      const userGreenhousesRef = collection(db, `userData/${userId}/greenhouses`);
+      const docRef = await addDoc(userGreenhousesRef, newGreenhouseData);
+
+      // Replace optimistic entry with real one
+      const realGreenhouse = {
+        id: docRef.id,
+        ...newGreenhouseData,
+        createdAt: new Date(),
+        updatedAt: new Date(),
+        plantCount: 0,
+      };
+
+      // Update local state
+      const index = state.greenhouses.findIndex((g) => g.id === optimisticId);
+      if (index !== -1) {
+        state.greenhouses.splice(index, 1, realGreenhouse);
+      }
+
+      showToast("Greenhouse added successfully", "success");
+      return realGreenhouse;
+    } catch (err) {
+      console.error("Error adding greenhouse: ", err);
+
+      // Remove optimistic entry on error
+      state.greenhouses = state.greenhouses.filter((g) => !g.pending);
+
+      state.error = "Unable to add greenhouse. Please try again later.";
+      showToast("Unable to add greenhouse. Please try again later.", "error");
+      throw err;
+    } finally {
+      state.isAdding = false;
+    }
+  };
+
+  // Delete a greenhouse with optimistic UI update
+  const deleteGreenhouse = async (greenhouseId) => {
+    state.isDeleting = true;
+    state.error = null;
+
+    try {
+      // Check authentication
       if (!auth.currentUser) {
         throw new Error("You must be logged in to delete a greenhouse");
       }
 
       const userId = auth.currentUser.uid;
 
-      // Verify the greenhouse exists in our state
-      const greenhouse = greenhouses.value.find((g) => g.id === greenhouseId);
-      if (!greenhouse) {
+      // Find the greenhouse in local state
+      const index = state.greenhouses.findIndex((g) => g.id === greenhouseId);
+      if (index === -1) {
         throw new Error("Greenhouse not found");
       }
 
-      // Remove greenhouseId from plants collection
+      // Store for optimistic UI update
+      const deletedGreenhouse = state.greenhouses[index];
+
+      // Optimistically remove from UI
+      state.greenhouses.splice(index, 1);
+
+      // Update plants (remove greenhouseId references)
       const plantsRef = collection(db, `userData/${userId}/plants`);
       const batch = writeBatch(db);
-      const plantsSnapshot = await getDocs(plantsRef);
+      const plantsSnapshot = await getDocs(
+        query(plantsRef, where("greenhouseId", "==", greenhouseId))
+      );
 
-      // Update each plant to remove this greenhouseId
+      // More efficient - only update plants that reference this greenhouse
       plantsSnapshot.forEach((plantDoc) => {
-        const plantData = plantDoc.data();
-        if (plantData.greenhouseId === greenhouseId) {
-          const plantRef = doc(db, `userData/${userId}/plants/${plantDoc.id}`);
-          batch.update(plantRef, {
-            greenhouseId: null,
-            updatedAt: serverTimestamp(),
+        const plantRef = doc(db, `userData/${userId}/plants/${plantDoc.id}`);
+        batch.update(plantRef, {
+          greenhouseId: null,
+          updatedAt: serverTimestamp(),
+        });
+
+        // Update plant cache if it exists
+        const plantCacheKey = `plant-${plantDoc.id}`;
+        const cachedPlant = state.cache.get(plantCacheKey);
+        if (cachedPlant) {
+          cachedPlant.data.greenhouseId = null;
+          state.cache.set(plantCacheKey, {
+            data: cachedPlant.data,
+            timestamp: Date.now(),
           });
         }
       });
 
-      // Commit all batch operations
+      // Commit batch operations
       await batch.commit();
 
-      // Delete from Firestore
-      const greenhouseDocRef = doc(
-        db,
-        `userData/${userId}/greenhouses`,
-        greenhouseId
-      );
+      // Delete the greenhouse document
+      const greenhouseDocRef = doc(db, `userData/${userId}/greenhouses`, greenhouseId);
       await deleteDoc(greenhouseDocRef);
 
-      // Remove from local state
-      const index = greenhouses.value.findIndex((g) => g.id === greenhouseId);
-      if (index !== -1) {
-        const deletedGreenhouse = greenhouses.value[index];
-        greenhouses.value.splice(index, 1);
-        showToast(
-          `"${deletedGreenhouse.name}" deleted successfully`,
-          "success"
-        );
-      }
+      // Clear cache entries
+      state.cache.delete(`greenhouse-${greenhouseId}`);
 
+      showToast(`"${deletedGreenhouse.name}" deleted successfully`, "success");
       return true;
     } catch (err) {
       console.error("Error deleting greenhouse: ", err);
-      error.value = "Unable to delete greenhouse. Please try again later.";
-      showToast(
-        "Unable to delete greenhouse. Please try again later.",
-        "error"
-      );
+
+      // Revert optimistic update on error
+      await fetchGreenhouses(false, state.searchQuery);
+
+      state.error = "Unable to delete greenhouse. Please try again later.";
+      showToast("Unable to delete greenhouse. Please try again later.", "error");
       throw err;
     } finally {
-      isDeleting.value = false;
+      state.isDeleting = false;
     }
   };
 
-  // Add dedicated search function
+  // Efficient search implementation
   const searchGreenhouses = async (query) => {
-    // Reset pagination
-    lastDoc.value = null;
-    noMoreResults.value = false;
+    state.searchQuery = query;
 
-    // Use the fetchGreenhouses with search parameter
+    // For simple searches, just filter the existing data
+    if (state.initialized && query.length < 3) {
+      return sortedGreenhouses.value;
+    }
+
+    // Reset pagination
+    state.lastDoc = null;
+    state.noMoreResults = false;
+
+    // Fetch with search parameter for more complex searches
     return await fetchGreenhouses(false, query);
   };
 
-  // Reset state (useful when component unmounts)
+  // Reset state and clear cache
   const reset = () => {
-    greenhouses.value = [];
-    loading.value = true;
-    error.value = null;
-    isAdding.value = false;
-    isDeleting.value = false;
-    lastDoc.value = null;
-    noMoreResults.value = false;
+    state.greenhouses = [];
+    state.loading = false;
+    state.error = null;
+    state.isAdding = false;
+    state.isDeleting = false;
+    state.lastDoc = null;
+    state.noMoreResults = false;
+    state.initialized = false;
+    state.cache.clear();
   };
 
   return {
-    // State
-    greenhouses,
-    greenhousesWithPlantCount,
+    // Expose state
+    greenhouses: computed(() => state.greenhouses),
+    loading: computed(() => state.loading),
+    error: computed(() => state.error),
+    isAdding: computed(() => state.isAdding),
+    isDeleting: computed(() => state.isDeleting),
+    noMoreResults: computed(() => state.noMoreResults),
+    sortBy: computed(() => state.sortBy),
     sortedGreenhouses,
-    sortBy,
-    loading,
-    error,
-    isAdding,
-    isDeleting,
-    noMoreResults,
 
     // Methods
     fetchGreenhouses,

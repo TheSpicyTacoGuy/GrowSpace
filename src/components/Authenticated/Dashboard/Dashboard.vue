@@ -4,7 +4,6 @@ import { useDashboard } from "../../../composables/useDashboard";
 
 // Import components
 import DashboardHeader from "./DashboardComponents/DashboardHeader.vue";
-import StatCard from "./DashboardComponents/StatCard.vue";
 import WeatherCard from "./DashboardComponents/WeatherCard.vue";
 
 // Use the dashboard composable
@@ -31,7 +30,7 @@ defineOptions({
 </script>
 
 <template>
-  <div class="dashboard-container p-3">
+  <div class="container py-3">
     <!-- Dashboard Header -->
     <DashboardHeader />
 
@@ -49,39 +48,94 @@ defineOptions({
       {{ error }}
     </div>
 
-    <div v-else class="row mt-4 d-flex justify-content-center">
-      <!-- Greenhouse Count Card -->
-      <div class="col-md-6 mb-4">
-        <router-link to="/dashboard/greenhouses" class="text-decoration-none">
-          <StatCard
-            title="Greenhouses"
-            :count="greenhouseCount"
-            icon="building"
-            iconBgClass="bg-success bg-opacity-10"
-            iconTextClass="text-success"
-            description="Total greenhouses managed"
-          />
-        </router-link>
+    <div v-else>
+      <!-- Quick Access Grid -->
+      <div class="row g-3 mt-2">
+        <!-- Greenhouses Card -->
+        <div class="col-6">
+          <router-link to="/dashboard/greenhouses" class="text-decoration-none">
+            <div class="card mobile-card h-100 shadow-sm border-0">
+              <div class="card-body text-center p-3">
+                <div class="icon-bg bg-success bg-opacity-10 mb-2 mx-auto">
+                  <i class="bi bi-house-fill text-success fs-3"></i>
+                </div>
+                <h3 class="card-title h6 mb-0">Greenhouses</h3>
+                <div class="small text-muted mt-1">{{ greenhouseCount }}</div>
+              </div>
+            </div>
+          </router-link>
+        </div>
+
+        <!-- Plants Card -->
+        <div class="col-6">
+          <router-link to="/dashboard/plants" class="text-decoration-none">
+            <div class="card mobile-card h-100 shadow-sm border-0">
+              <div class="card-body text-center p-3">
+                <div class="icon-bg bg-primary bg-opacity-10 mb-2 mx-auto">
+                  <i class="bi bi-flower2 text-primary fs-3"></i>
+                </div>
+                <h3 class="card-title h6 mb-0">Plants</h3>
+                <div class="small text-muted mt-1">{{ plantCount }}</div>
+              </div>
+            </div>
+          </router-link>
+        </div>
+
+        <!-- Tips Card -->
+        <div class="col-6">
+          <router-link to="/dashboard/tips" class="text-decoration-none">
+            <div class="card mobile-card h-100 shadow-sm border-0">
+              <div class="card-body text-center p-3">
+                <div class="icon-bg bg-warning bg-opacity-10 mb-2 mx-auto">
+                  <i class="bi bi-lightbulb-fill text-warning fs-3"></i>
+                </div>
+                <h3 class="card-title h6 mb-0">Tips</h3>
+              </div>
+            </div>
+          </router-link>
+        </div>
+
+        <!-- Settings Card -->
+        <div class="col-6">
+          <router-link to="/dashboard/settings" class="text-decoration-none">
+            <div class="card mobile-card h-100 shadow-sm border-0">
+              <div class="card-body text-center p-3">
+                <div class="icon-bg bg-secondary bg-opacity-10 mb-2 mx-auto">
+                  <i class="bi bi-gear-fill text-secondary fs-3"></i>
+                </div>
+                <h3 class="card-title h6 mb-0">Settings</h3>
+              </div>
+            </div>
+          </router-link>
+        </div>
       </div>
 
-      <!-- Plant Count Card -->
-      <div class="col-md-6 mb-4">
-        <router-link to="/dashboard/plants" class="text-decoration-none">
-          <StatCard
-            title="Plants"
-            :count="plantCount"
-            icon="flower1"
-            iconBgClass="bg-primary bg-opacity-10"
-            iconTextClass="text-primary"
-            description="Total plants cultivated"
-          />
-        </router-link>
-      </div>
-
-      <!-- Weather Card -->
-      <div class="col-md-12 mb-4">
+      <!-- Weather Card - Keeping your existing component -->
+      <div class="mt-4">
         <WeatherCard :weather="weather" :weatherError="weatherError" />
       </div>
     </div>
   </div>
 </template>
+
+<style scoped>
+.icon-bg {
+  width: 50px;
+  height: 50px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+}
+
+.mobile-card {
+  transition:
+    transform 0.15s,
+    box-shadow 0.15s;
+}
+
+.mobile-card:active {
+  transform: scale(0.98);
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.05) !important;
+}
+</style>
