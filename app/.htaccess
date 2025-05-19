@@ -8,6 +8,21 @@
 </IfModule>
 
 
+# Allow access to the manifest and related files without authentication
+<Files ~ "\.(webmanifest|json|png|jpg|ico)$">
+  Order allow,deny
+  Allow from all
+  Satisfy any
+</Files>
+
+# Set CORS headers
+<IfModule mod_headers.c>
+  <FilesMatch "\.(webmanifest|json|png|jpg|ico)$">
+    Header set Access-Control-Allow-Origin "*"
+  </FilesMatch>
+</IfModule>
+
+
 require ldap-user s101634222
 require ldap-group cn=it_feenix_admin_convenor,ou=Group,ou=general,dc=feenix,dc=swin,dc=edu,dc=au
 require ldap-group cn=it_sdteam_convenor,ou=Group,ou=general,dc=feenix,dc=swin,dc=edu,dc=au

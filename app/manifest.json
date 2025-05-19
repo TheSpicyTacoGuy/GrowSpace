@@ -55,7 +55,7 @@
             "name": "Add Plant",
             "short_name": "Add Plant",
             "description": "Create a new plant",
-            "url": "/dashboard/plants?action=add",
+            "url": "./dashboard/plants?action=add",
             "icons": [
                 {
                     "src": "./shortcuts/add-plant.png",
@@ -67,7 +67,7 @@
             "name": "View Greenhouses",
             "short_name": "Greenhouses",
             "description": "Manage your greenhouses",
-            "url": "/dashboard/greenhouses",
+            "url": "./dashboard/greenhouses",
             "icons": [
                 {
                     "src": "./shortcuts/greenhouses.png",
@@ -76,12 +76,12 @@
             ]
         }
     ],
-    "theme_color": "#5a9e62",
-    "background_color": "#ffffff",
+    "theme_color": "#000000",
+    "background_color": "#000000",
     "display": "standalone",
     "orientation": "any",
-    "start_url": "/",
-    "scope": "/",
+    "start_url": "./dashboard",
+    "scope": "./",
     "dir": "ltr",
     "lang": "en",
     "prefer_related_applications": false
