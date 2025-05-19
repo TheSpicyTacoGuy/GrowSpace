@@ -11,11 +11,8 @@ const __dirname = path.dirname(__filename);
 
 // https://vite.dev/config/
 export default defineConfig({
-  plugins: [
-    vue(),
-    // Let's use Rollup's manualChunks instead of the plugin
-    // for more reliable chunking
-  ],
+  base: "/cos30043/s101634222/project/app/",
+  plugins: [vue(),],
   root: path.resolve(__dirname, "src"),
   resolve: {
     alias: {
@@ -31,7 +28,6 @@ export default defineConfig({
       "@js": path.resolve(__dirname, "src/js"),
     },
   },
-  base: "/cos30043/s101634222/project/app/",
   build: {
     outDir: path.resolve(__dirname, "app"),
     assetsDir: "assets",

@@ -68,17 +68,21 @@
             </div>
             <div v-else>
               <div class="d-flex align-items-center mb-1 flex-wrap">
-                <i class="bi bi-person-circle me-1 fs-5 text-success"></i>
-                <span class="fw-bold me-2">
-                  {{ tip.author || "Anonymous" }}
-                </span>
-                <span
-                  v-if="tip.authorRole === 'admin'"
-                  class="badge bg-danger ms-2"
-                  title="Admin"
-                >
-                  <i class="bi bi-shield-lock-fill me-1"></i>Admin
-                </span>
+                <div class="d-flex align-items-center flex-nowrap me-2">
+                  <i class="bi bi-person-circle me-1 fs-5 text-success"></i>
+                  <span class="fw-bold text-truncate" style="max-width: 150px">
+                    {{ tip.author || "Anonymous" }}
+                  </span>
+                  <span
+                    v-if="tip.authorRole === 'admin'"
+                    class="badge bg-danger badge-sm ms-1 d-inline-flex align-items-center"
+                    title="Admin"
+                    style="white-space: nowrap"
+                  >
+                    <i class="bi bi-shield-lock-fill me-1"></i>
+                    <span class="d-inline">Admin</span>
+                  </span>
+                </div>
               </div>
               <div class="mb-2 tip-content">
                 <router-link
@@ -180,18 +184,24 @@
                   </button>
                 </div>
                 <div v-else>
-                  <div class="d-flex align-items-center">
-                    <span class="fw-bold me-2">{{
-                      comment.author || "Anonymous"
-                    }}</span>
-                    <span
-                      v-if="comment.authorRole === 'admin'"
-                      class="badge bg-danger ms-2"
-                      title="Admin"
-                    >
-                      <i class="bi bi-shield-lock-fill me-1"></i>Admin
-                    </span>
-                    <span class="text-muted small ms-2">{{
+                  <div class="d-flex align-items-center flex-wrap">
+                    <div class="d-flex align-items-center flex-nowrap me-2">
+                      <span
+                        class="fw-bold text-truncate"
+                        style="max-width: 150px"
+                      >
+                        {{ comment.author || "Anonymous" }}
+                      </span>
+                      <span
+                        v-if="comment.authorRole === 'admin'"
+                        class="badge bg-danger badge-sm ms-1 d-inline-flex align-items-center"
+                        title="Admin"
+                        style="white-space: nowrap"
+                      >
+                        <i class="bi bi-shield-lock-fill d-inline"></i>
+                      </span>
+                    </div>
+                    <span class="text-muted small me-auto">{{
                       formatDate(comment.createdAt)
                     }}</span>
                     <span
@@ -199,7 +209,7 @@
                         userRole === 'admin' ||
                         comment.authorId === auth.currentUser?.uid
                       "
-                      class="ms-auto"
+                      class="ms-0 ms-sm-auto mt-1 mt-sm-0"
                     >
                       <button
                         class="btn btn-outline-warning btn-xs me-1 border-0"

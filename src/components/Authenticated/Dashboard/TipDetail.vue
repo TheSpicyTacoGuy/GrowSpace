@@ -2,10 +2,12 @@
 import { useRoute, useRouter } from "vue-router";
 import { ref, onMounted, watch } from "vue";
 import useTipsForum from "@composables/useTipsForum.js";
+import { useSettings } from "@composables/useSettings.js"; // Add this import
 
 const route = useRoute();
 const router = useRouter();
 const tipId = route.params.id;
+const { userRole } = useSettings(); // Get user role from settings
 
 // Use the composable (call it as a function!)
 const {
@@ -19,9 +21,11 @@ const {
   startEditTip,
   saveEditTip,
   cancelEditTip,
-  deleteTip,
+  deleteTip: originalDeleteTip,
   formatDate,
   auth,
+  newComment,
+  submitComment,
   editingCommentId,
   editCommentContent,
   startEditComment,
@@ -30,12 +34,16 @@ const {
   deleteComment,
   canLikeComment,
   likeComment,
-  userRole,
 } = useTipsForum();
+
+// Wrapper function to add redirect
+const deleteTip = async (tip) => {
+  await originalDeleteTip(tip);
+  router.push("/dashboard/tips");
+};
 
 // Local state for the current tip
 const tip = ref(null);
-const newComment = ref({});
 
 // Fetch the tip and its comments on mount or when tipId changes
 const fetchTip = () => {
@@ -44,15 +52,6 @@ const fetchTip = () => {
 };
 onMounted(fetchTip);
 watch([tips, () => route.params.id], fetchTip);
-
-// Submit a new comment
-const submitComment = (tipId) => {
-  if (newComment.value[tipId]?.trim()) {
-    // Call the appropriate method to submit the comment
-    // For example: addComment(tipId, newComment.value[tipId]);
-    newComment.value[tipId] = ""; // Clear the input after submission
-  }
-};
 </script>
 
 <template>

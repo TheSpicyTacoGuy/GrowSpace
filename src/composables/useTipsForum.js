@@ -3,6 +3,7 @@ import {
   collection,
   addDoc,
   getDocs,
+  getDoc,
   updateDoc,
   deleteDoc,
   doc,
@@ -14,12 +15,13 @@ import {
 } from "firebase/firestore";
 import { db, auth } from "@js/auth/firebase.js";
 import { showToast } from "@js/toast.js";
+import { useSettings } from "@composables/useSettings.js";
 
 const tips = ref([]);
 const newTip = ref("");
 const editingTipId = ref(null);
 const editTipContent = ref("");
-const userRole = ref("user"); // Default role
+let userRole = ref(null);
 
 // Comments state
 const comments = ref({});
@@ -56,12 +58,26 @@ const fetchAllComments = async (tipsArr) => {
 // Submit a new tip
 const submitTip = async () => {
   if (!newTip.value.trim()) return;
+  
+  // Directly fetch the user role
+  let role = "user";
+  if (auth.currentUser) {
+    try {
+      const userRef = doc(db, "userData", auth.currentUser.uid);
+      const userSnap = await getDoc(userRef);
+      if (userSnap.exists()) {
+        role = userSnap.data().role || "user";
+      }
+    } catch (err) {
+      console.error("Error fetching user role:", err);
+    }
+  }
+  
   await addDoc(collection(db, "tips"), {
     content: newTip.value,
-    author:
-      auth.currentUser?.displayName || auth.currentUser?.email || "Anonymous",
+    author: auth.currentUser?.displayName || auth.currentUser?.email || "Anonymous",
     authorId: auth.currentUser?.uid || null,
-    authorRole: userRole.value || "user",
+    authorRole: role, // Use the directly fetched role
     createdAt: serverTimestamp(),
     likes: 0,
     likedBy: [],
@@ -78,13 +94,29 @@ const submitComment = async (tipId) => {
     showToast(`Maximum of ${MAX_COMMENTS_PER_TIP} comments per tip reached.`, "danger");
     return;
   }
+  
   const content = newComment.value[tipId];
   if (!content || !content.trim()) return;
+  
+  // Directly fetch the user role
+  let role = "user";
+  if (auth.currentUser) {
+    try {
+      const userRef = doc(db, "userData", auth.currentUser.uid);
+      const userSnap = await getDoc(userRef);
+      if (userSnap.exists()) {
+        role = userSnap.data().role || "user";
+      }
+    } catch (err) {
+      console.error("Error fetching user role:", err);
+    }
+  }
+  
   await addDoc(collection(db, "tips", tipId, "comments"), {
     content,
     author: auth.currentUser?.displayName || auth.currentUser?.email || "Anonymous",
     authorId: auth.currentUser?.uid || null,
-    authorRole: userRole.value || "user",
+    authorRole: role, // Use the directly fetched role
     createdAt: serverTimestamp(),
     likes: 0,
     likedBy: [],
@@ -220,8 +252,12 @@ const deleteComment = async (tipId, comment) => {
 };
 
 export default function useTipsForum() {
+  // Get fresh userRole value inside the function
+  const settings = useSettings();
+  userRole.value = settings.userRole.value;
 
   onMounted(fetchTips);
+
   return {
     tips,
     tipsSorted: computed(() =>
