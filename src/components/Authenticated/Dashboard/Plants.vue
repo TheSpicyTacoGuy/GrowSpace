@@ -1,22 +1,33 @@
 <script setup>
-import {
-  onMounted,
-  onUnmounted,
-  onBeforeUnmount,
-  onUpdated,
-  ref,
-  watch,
-} from "vue";
-import { Modal, Tooltip } from "bootstrap";
+import { onMounted, onUnmounted, ref, watch } from "vue";
+import { Modal } from "bootstrap"; // Remove Tooltip import
 import { usePlants } from "@composables/usePlants";
 import { useGreenhouses } from "@composables/useGreenhouses";
 import MobilePageHeader from "@components/MobilePageHeader.vue";
+import { initialiseNotifications } from "@js/notificationManager";
 
 // Components
 import PlantHeader from "./PlantComponents/PlantHeader.vue";
 import PlantsList from "./PlantComponents/PlantsList.vue";
 import AddPlantModal from "./PlantComponents/AddPlantModal.vue";
 import DeletePlantModal from "./PlantComponents/DeletePlantModal.vue";
+
+// Initialize notification manager
+const notificationManager = initialiseNotifications();
+
+// Add these missing refs for mobile search functionality
+const showSearch = ref(false);
+const searchTerm = ref("");
+
+// Toggle search visibility
+const toggleSearch = () => {
+  showSearch.value = !showSearch.value;
+};
+
+// Watch search term changes to trigger search
+watch(searchTerm, (newValue) => {
+  handleSearch(newValue);
+});
 
 // Composables
 const {
@@ -51,12 +62,14 @@ const addModal = ref(null);
 const deleteModal = ref(null);
 const plantToDelete = ref(null);
 
+// Modal handlers
 const openAddModal = () => {
   if (!addModal.value) {
     addModal.value = new Modal(document.getElementById("addPlantModal"));
   }
   addModal.value.show();
 };
+
 const closeAddModal = () => {
   if (addModal.value) addModal.value.hide();
 };
@@ -68,6 +81,7 @@ const confirmDelete = (plant) => {
   }
   deleteModal.value.show();
 };
+
 const handleDelete = async () => {
   if (!plantToDelete.value) return;
   try {
@@ -76,7 +90,6 @@ const handleDelete = async () => {
     plantToDelete.value = null;
   } catch (err) {
     console.error("Error deleting plant: ", err);
-    // Error handled in composable
   }
 };
 
@@ -85,20 +98,19 @@ const handleLoadMore = async (loadMore = false) => {
 };
 
 onMounted(async () => {
+  // Load data first and ensure it completes
   await Promise.all([fetchPlants(), fetchGreenhouses()]);
+
+  // Now that data is loaded, check for notifications after a brief delay
+  setTimeout(() => {
+    // Pass the sortedPlants to the notification check
+    notificationManager.checkNotifications();
+  }, 2000);
 });
+
 onUnmounted(() => {
   if (addModal.value) addModal.value.dispose();
   if (deleteModal.value) deleteModal.value.dispose();
-
-  // Dispose tooltips to prevent the "Cannot convert undefined or null to object" error
-  const tooltips = document.querySelectorAll('[data-bs-toggle="tooltip"]');
-  tooltips.forEach((el) => {
-    const tooltip = Tooltip.getInstance(el);
-    if (tooltip) tooltip.dispose();
-  });
-
-  // FIXED: Use reset instead of resetPlants
   reset();
 });
 
@@ -107,95 +119,16 @@ watch(
   () => version.value,
   () => {
     // This empty watcher ensures the component reacts to changes
-    // It's not always necessary but helps in complex cases
   },
   { immediate: true }
 );
 
-// Add a function to handle plant updates
+// Function to handle plant updates
 function handlePlantUpdated(updatedPlant) {
-  // Use the new method instead of trying to modify computed property
   updateLocalPlant(updatedPlant);
 }
 
-// Add this helper function to safely manage tooltips
-const managePlantsTooltips = () => {
-  try {
-    // First, dispose any existing tooltips to prevent duplicates
-    document.querySelectorAll('[data-bs-toggle="tooltip"]').forEach((el) => {
-      try {
-        const tooltip = Tooltip.getInstance(el);
-        if (tooltip) {
-          tooltip.dispose();
-        }
-      } catch (err) {
-        // Silent catch for individual tooltip errors
-      }
-    });
-
-    // Clean up any tooltip elements that might be orphaned
-    document.querySelectorAll(".tooltip").forEach((el) => el.remove());
-
-    // Re-initialize tooltips with proper configuration
-    const tooltipTriggerList = document.querySelectorAll(
-      '[data-bs-toggle="tooltip"]'
-    );
-    tooltipTriggerList.forEach((el) => {
-      try {
-        new Tooltip(el, {
-          trigger: "hover focus", // Define explicit triggers
-          container: "body", // Attach to body for cleaner removal
-          boundary: "window", // Improve positioning
-        });
-      } catch (err) {
-        // Silent catch for individual tooltip errors
-      }
-    });
-  } catch (e) {
-    console.log("Error managing tooltips", e);
-  }
-};
-
-// Call on component updates to ensure tooltips are properly managed after DOM changes
-onUpdated(() => {
-  // Use setTimeout to ensure DOM has fully updated
-  setTimeout(() => {
-    managePlantsTooltips();
-  }, 100);
-});
-
-// Initialize tooltips after initial mount
-onMounted(() => {
-  Promise.all([fetchPlants(), fetchGreenhouses()]).then(() => {
-    // Initialize tooltips after data is loaded and rendered
-    setTimeout(managePlantsTooltips, 100);
-  });
-});
-
-// Clean up more thoroughly before unmounting
-onBeforeUnmount(() => {
-  try {
-    // Dispose all tooltips
-    document.querySelectorAll('[data-bs-toggle="tooltip"]').forEach((el) => {
-      try {
-        const tooltip = Tooltip.getInstance(el);
-        if (tooltip) tooltip.dispose();
-      } catch (err) {
-        // Silent catch
-      }
-    });
-
-    // Remove any remaining tooltip elements
-    document.querySelectorAll(".tooltip").forEach((el) => el.remove());
-
-    // Reset body classes and attributes that Bootstrap might have added
-    document.body.classList.remove("modal-open");
-    document.body.style.overflow = "";
-    document.body.style.paddingRight = "";
-  } catch (e) {
-    console.log("Error cleaning up tooltips", e);
-  }
-});
+// Remove all tooltip management functions
 
 defineOptions({ name: "PlantsComponent" });
 </script>

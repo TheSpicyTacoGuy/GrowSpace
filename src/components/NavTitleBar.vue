@@ -1,8 +1,7 @@
 <script setup>
-import { Tooltip } from "bootstrap";
 import { useRouter } from "vue-router";
 import { logout } from "../js/auth/authFunctions.js";
-import { ref, onMounted } from "vue";
+import { ref } from "vue"; // Remove onMounted if it's no longer needed elsewhere
 import { useUserRole } from "@composables/useUserRole.js";
 import NotificationBell from "./NotificationBell.vue";
 
@@ -24,15 +23,6 @@ function navigateTo(routeName) {
     router.push(`/${routeName}`);
   }
 }
-
-onMounted(() => {
-  const tooltipTriggerList = document.querySelectorAll(
-    '[data-bs-toggle="tooltip"]'
-  );
-  [...tooltipTriggerList].map(
-    (tooltipTriggerEl) => new Tooltip(tooltipTriggerEl)
-  );
-});
 </script>
 
 <template>
@@ -189,8 +179,8 @@ onMounted(() => {
         v-if="!currentUser && !authLoading"
         class="btn btn-primary login-btn d-flex align-items-center"
         @click="navigateTo('login')"
-        data-bs-toggle="tooltip"
-        data-bs-title="Sign In"
+        v-tooltip
+        title="Sign in to your account"
       >
         <i class="bi bi-box-arrow-in-right me-2"></i>
         <span>Sign In</span>
@@ -214,8 +204,8 @@ onMounted(() => {
       <div
         v-else-if="currentUser && !authLoading"
         class="dropdown me-2"
-        data-bs-toggle="tooltip"
-        data-bs-title="User Menu"
+        v-tooltip
+        title="User Menu"
       >
         <a
           href="#"

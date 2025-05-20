@@ -1,21 +1,45 @@
 <script setup>
-import { ref } from "vue";
+import { ref, onMounted } from "vue";
 import { useRouter } from "vue-router";
 import { usePlantNotifications } from "@composables/usePlantNotifications.js";
 
 const router = useRouter();
 const isOpen = ref(false);
-const { notifications, unreadCount, markAsRead, markAllAsRead } =
-  usePlantNotifications();
+const showConfirmation = ref(false);
+const {
+  notifications,
+  unreadCount,
+  markAsRead,
+  markAllAsRead,
+  loadNotifications,
+  clearAllNotifications,
+} = usePlantNotifications();
 
 // Toggle dropdown visibility
 const toggleNotifications = () => {
   isOpen.value = !isOpen.value;
+
+  // If opening, refresh the notifications
+  if (isOpen.value) {
+    loadNotifications();
+  }
 };
 
 // Close dropdown
 const closeNotifications = () => {
   isOpen.value = false;
+  showConfirmation.value = false;
+};
+
+// Show confirmation dialog
+const confirmClearAll = () => {
+  showConfirmation.value = true;
+};
+
+// Clear all notifications after confirmation
+const handleClearAll = async () => {
+  await clearAllNotifications();
+  showConfirmation.value = false;
 };
 
 // Handle notification click
@@ -47,10 +71,15 @@ const getRelativeTime = (date) => {
   const days = Math.floor(hours / 24);
   return `${days} day${days !== 1 ? "s" : ""} ago`;
 };
+
+// Force load notifications when bell is mounted
+onMounted(() => {
+  loadNotifications();
+});
 </script>
 
 <template>
-  <div class="notification-bell position-relative">
+  <div class="position-relative">
     <button
       class="btn btn-link position-relative"
       @click="toggleNotifications"
@@ -67,24 +96,54 @@ const getRelativeTime = (date) => {
     </button>
 
     <!-- Notification dropdown -->
-    <div v-if="isOpen" class="notification-dropdown shadow-lg">
+    <div
+      v-if="isOpen"
+      class="position-absolute top-100 end-0 shadow-lg bg-body rounded-3 notification-dropdown"
+    >
       <div
-        class="notification-header d-flex justify-content-between align-items-center p-3 border-bottom"
+        class="d-flex justify-content-between align-items-center p-3 border-bottom"
       >
         <h5 class="mb-0">Notifications</h5>
-        <button
-          v-if="unreadCount > 0"
-          class="btn btn-sm btn-link text-decoration-none"
-          @click="markAllAsRead"
-        >
-          Mark all as read
-        </button>
+        <div class="d-flex gap-2">
+          <button
+            v-if="unreadCount > 0"
+            class="btn btn-sm btn-link text-decoration-none"
+            @click="markAllAsRead"
+          >
+            Mark all as read
+          </button>
+          <button
+            v-if="notifications.length > 0"
+            v-tooltip
+            title="Clear all notifications"
+            class="btn btn-sm btn-link text-decoration-none text-danger"
+            @click="confirmClearAll"
+          >
+            <i class="bi bi-trash"></i>
+          </button>
+        </div>
       </div>
 
+      <!-- Confirmation Dialog -->
       <div
-        class="notification-body"
-        style="max-height: 400px; overflow-y: auto"
+        v-if="showConfirmation"
+        class="p-3 border-bottom confirmation-dialog"
       >
+        <p class="mb-3">Are you sure you want to clear all notifications?</p>
+        <div class="d-flex justify-content-end gap-2">
+          <button
+            class="btn btn-sm btn-outline-secondary"
+            @click="showConfirmation = false"
+          >
+            Cancel
+          </button>
+          <button class="btn btn-sm btn-danger" @click="handleClearAll">
+            Clear All
+          </button>
+        </div>
+      </div>
+
+      <div class="overflow-auto" style="max-height: 400px">
         <div
           v-if="notifications.length === 0"
           class="text-center py-4 text-muted"
@@ -97,12 +156,14 @@ const getRelativeTime = (date) => {
           <div
             v-for="notification in notifications"
             :key="notification.id"
-            class="notification-item p-3 border-bottom"
-            :class="{ unread: !notification.read }"
+            class="p-3 border-bottom notification-item"
+            :class="{ 'bg-body-secondary': !notification.read }"
             @click="handleNotificationClick(notification)"
           >
             <div class="d-flex">
-              <div class="notification-icon me-3">
+              <div
+                class="d-flex align-items-center justify-content-center rounded-circle me-3 notification-icon"
+              >
                 <i
                   class="bi"
                   :class="{
@@ -114,10 +175,10 @@ const getRelativeTime = (date) => {
                   }"
                 ></i>
               </div>
-              <div class="notification-content flex-grow-1">
+              <div class="flex-grow-1">
                 <div class="fw-semibold">{{ notification.title }}</div>
                 <div class="text-muted small">{{ notification.body }}</div>
-                <div class="text-muted x-small mt-1">
+                <div class="text-muted fs-6 mt-1">
                   {{ getRelativeTime(notification.createdAt) }}
                 </div>
               </div>
@@ -126,7 +187,7 @@ const getRelativeTime = (date) => {
         </div>
       </div>
 
-      <div class="notification-footer p-2 border-top">
+      <div class="p-2 border-top">
         <button
           class="btn btn-sm btn-outline-secondary w-100"
           @click="closeNotifications"
@@ -139,19 +200,9 @@ const getRelativeTime = (date) => {
 </template>
 
 <style scoped>
-.notification-bell {
-  position: relative;
-}
-
 .notification-dropdown {
-  position: absolute;
-  top: 100%;
-  right: 0;
-  width: 320px;
+  width: 400px;
   max-width: 100vw;
-  background: var(--bs-body-bg);
-  border-radius: 8px;
-  border: 1px solid var(--bs-border-color);
   z-index: 1050;
 }
 
@@ -161,24 +212,24 @@ const getRelativeTime = (date) => {
 }
 
 .notification-item:hover {
-  background-color: rgba(var(--bs-primary-rgb), 0.05);
-}
-
-.notification-item.unread {
-  background-color: rgba(var(--bs-primary-rgb), 0.1);
+  background-color: rgba(var(--bs-primary-rgb), 0.08);
 }
 
 .notification-icon {
   width: 36px;
   height: 36px;
-  border-radius: 50%;
-  background-color: rgba(var(--bs-light-rgb), 0.7);
-  display: flex;
-  align-items: center;
-  justify-content: center;
 }
 
-.x-small {
-  font-size: 0.75rem;
+.confirmation-dialog {
+  animation: fadeIn 0.2s;
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
 }
 </style>

@@ -59,8 +59,8 @@ const locationDisplay = computed(() => {
           <i
             v-if="weather.usingFallback"
             class="bi bi-info-circle ms-1"
-            data-bs-toggle="tooltip"
-            title="Using an approximate location because precise location is unavailable. Set a custom location in Settings."
+            v-tooltip
+            title="Using fallback location"
           ></i>
         </div>
 

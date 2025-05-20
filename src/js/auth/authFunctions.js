@@ -8,6 +8,7 @@ import {
 import { getFirestore, doc, setDoc, getDoc } from "firebase/firestore";
 import { showToast } from "../toast";
 import router from "../router";
+import { initialiseNotifications } from "@js/notificationManager";
 
 const auth = getAuth();
 const db = getFirestore();
@@ -34,6 +35,10 @@ async function login() {
     // Redirect to Dashboard
     router.push("/dashboard");
     showToast("Login successful, welcome back!", "success");
+
+    // Initialize and check notifications
+    const notificationManager = initialiseNotifications();
+    notificationManager.checkNotifications();
   } catch (error) {
     console.error("Authentication error:", error);
     if (error.code === "auth/user-disabled") {

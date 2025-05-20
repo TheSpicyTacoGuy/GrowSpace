@@ -1,7 +1,7 @@
 <script setup>
 import PlantCard from "./PlantCard.vue";
 
-const props = defineProps({
+defineProps({
   plants: {
     type: Array,
     required: true,

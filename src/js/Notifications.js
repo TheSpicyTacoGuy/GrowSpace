@@ -1,17 +1,10 @@
-import { ref, onMounted } from 'vue';
+import { ref } from 'vue';
 
 export function useNotifications() {
-  const isSupported = ref(false);
-  const isPermissionGranted = ref(false);
-
-  // Check if notifications are supported
-  onMounted(() => {
-    isSupported.value = 'Notification' in window;
-    
-    if (isSupported.value) {
-      isPermissionGranted.value = Notification.permission === 'granted';
-    }
-  });
+  const isSupported = ref('Notification' in window);
+  const isPermissionGranted = ref(
+    isSupported.value && Notification.permission === 'granted'
+  );
 
   // Request permission
   const requestPermission = async () => {

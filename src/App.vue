@@ -8,10 +8,15 @@ import MoveToTopBtn from "./components/MoveToTopBtn.vue";
 import LoadingSplash from "./components/LoadingSplash.vue";
 import { useUserRole } from "./composables/useUserRole.js";
 import { useNotifications } from "@js/Notifications.js";
+import { initialiseNotifications } from "@js/NotificationManager";
+import { usePlantNotifications } from "@composables/usePlantNotifications";
 
 const isInitialLoading = ref(true);
 const { authLoading } = useUserRole();
 const { requestPermission } = useNotifications();
+
+// Initialise notifications globally
+initialiseNotifications();
 
 // Watch for auth loading to complete
 watch(authLoading, (isLoading) => {
@@ -29,6 +34,13 @@ onMounted(() => {
   setTimeout(() => {
     isInitialLoading.value = false;
   }, 3000); // Max 3 seconds even if auth takes longer
+
+  // This will setup the auth listener that triggers notifications
+  // when a user logs in
+
+  // Initialize plant notifications after auth is loaded
+  const { initialize } = usePlantNotifications();
+  initialize();
 });
 </script>
 

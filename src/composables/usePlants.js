@@ -17,6 +17,7 @@ import {
 } from "firebase/firestore";
 import { db, auth } from "@js/auth/firebase.js";
 import { showToast } from "@js/toast.js";
+import { usePlantNotifications } from '@composables/usePlantNotifications';
 
 export function usePlants(defaultItemsPerPage = 12) {
   // ==================== STATE MANAGEMENT ====================
@@ -1251,8 +1252,36 @@ export function usePlants(defaultItemsPerPage = 12) {
   };
 
   // Alternative naming for handlers
-  const handleWaterPlant = handleWater;
-  const handleFertilisePlant = handleFertilise;
+  const handleWaterPlant = async (plantId) => {
+    try {
+      const result = await handleWater(plantId);
+      
+      // After successfully watering, clear the notification
+      const { clearPlantNotification } = usePlantNotifications();
+      await clearPlantNotification(plantId, 'water');
+      
+      return result;
+    } catch (error) {
+      console.error("Error watering plant:", error);
+      return false;
+    }
+  };
+
+  const handleFertilisePlant = async (plantId) => {
+    try {
+      const result = await handleFertilise(plantId);
+      
+      // After successfully fertilising, clear the notification
+      const { clearPlantNotification } = usePlantNotifications();
+      await clearPlantNotification(plantId, 'fertiliser');
+      
+      return result;
+    } catch (error) {
+      console.error("Error fertilising plant:", error);
+      return false;
+    }
+  };
+
   const handleUpdatePlant = updatePlant;
 
   // Reset state

@@ -1,11 +1,12 @@
-import { ref, watch, onMounted, onUnmounted } from 'vue';
-import { useNotifications } from '@js/Notifications.js';
-import { usePlants } from '@composables/usePlants.js';
+import { ref } from 'vue';
 import { 
   getFirestore, collection, addDoc, getDocs, query, 
-  orderBy, limit, doc, updateDoc, writeBatch, serverTimestamp 
+  orderBy, limit, doc, updateDoc, writeBatch, serverTimestamp,
+  where, getDoc, setDoc
 } from 'firebase/firestore';
 import { getAuth } from 'firebase/auth';
+import { useNotifications } from '@js/Notifications';
+import { usePlants } from '@composables/usePlants';
 
 export function usePlantNotifications() {
   const notifications = ref([]);
@@ -14,21 +15,70 @@ export function usePlantNotifications() {
   const db = getFirestore();
   const auth = getAuth();
   const { isSupported, showNotification } = useNotifications();
-  const { plants, needsWater, needsFertiliser } = usePlants();
+  
+  // Create full instance for when used outside of plants component
+  const plantsComposable = usePlants();
+  const plants = plantsComposable.plants;
+  const needsWater = plantsComposable.needsWater;
+  const needsFertiliser = plantsComposable.needsFertiliser;
   
   // Store IDs of plants we've already notified about to prevent duplication
   const notifiedPlantIds = ref(new Set());
   
-  // Check plants status and send notifications if needed
-  const checkPlantsStatus = async () => {
+  // Load notified plants from Firestore on startup
+  const loadNotifiedPlants = async () => {
     if (!auth.currentUser) return;
     
     try {
-      const plantsNeedingWater = plants.value.filter(
+      const userNotificationsRef = doc(db, `userData/${auth.currentUser.uid}/userPreferences/notifications`);
+      const docSnap = await getDoc(userNotificationsRef);
+      
+      if (docSnap.exists()) {
+        const data = docSnap.data();
+        if (data.notifiedPlants) {
+          // Convert the array back to a Set
+          notifiedPlantIds.value = new Set(data.notifiedPlants);
+        }
+      }
+    } catch (error) {
+      console.error('Error loading notified plants:', error);
+    }
+  };
+  
+  // Save notified plants to Firestore
+  const saveNotifiedPlants = async () => {
+    if (!auth.currentUser) return;
+    
+    try {
+      const userNotificationsRef = doc(db, `userData/${auth.currentUser.uid}/userPreferences/notifications`);
+      await setDoc(userNotificationsRef, {
+        notifiedPlants: Array.from(notifiedPlantIds.value),
+        updatedAt: serverTimestamp()
+      }, { merge: true });
+    } catch (error) {
+      console.error('Error saving notified plants:', error);
+    }
+  };
+  
+  // Check plants status and send notifications if needed
+  const checkPlantsStatus = async (plantsToCheck = null) => {
+    if (!auth.currentUser) return;
+    
+    try {
+      await loadNotifiedPlants();
+      
+      // Use provided plants array if available, otherwise use our own
+      const plantsArray = plantsToCheck || plants.value;
+      
+      if (!plantsArray || plantsArray.length === 0) {
+        return;
+      }
+      
+      const plantsNeedingWater = plantsArray.filter(
         p => needsWater(p) && !notifiedPlantIds.value.has(`water-${p.id}`)
       );
       
-      const plantsNeedingFertiliser = plants.value.filter(
+      const plantsNeedingFertiliser = plantsArray.filter(
         p => needsFertiliser(p) && !notifiedPlantIds.value.has(`fertiliser-${p.id}`)
       );
       
@@ -37,7 +87,7 @@ export function usePlantNotifications() {
         await sendNotification({
           title: "Plant needs water!",
           body: `${plant.name} needs watering.`,
-          icon: "/favicon.ico",
+          icon: "./favicon.ico",
           type: "water",
           plantId: plant.id,
           plantName: plant.name
@@ -52,7 +102,7 @@ export function usePlantNotifications() {
         await sendNotification({
           title: "Plant needs fertiliser!",
           body: `${plant.name} needs fertilising.`,
-          icon: "/favicon.ico",
+          icon: "./favicon.ico",
           type: "fertiliser",
           plantId: plant.id,
           plantName: plant.name
@@ -60,6 +110,11 @@ export function usePlantNotifications() {
         
         // Mark as notified to prevent duplicates
         notifiedPlantIds.value.add(`fertiliser-${plant.id}`);
+      }
+      
+      // Save the updated notified plants list
+      if (plantsNeedingWater.length > 0 || plantsNeedingFertiliser.length > 0) {
+        await saveNotifiedPlants();
       }
     } catch (error) {
       console.error('Error checking plants status:', error);
@@ -168,25 +223,83 @@ export function usePlantNotifications() {
     }
   };
   
-  // Watch for changes in plants to check status
-  watch(() => plants.value, () => {
-    checkPlantsStatus();
-  }, { deep: true });
+  // Clear notifications for a plant when it's watered or fertilised
+  const clearPlantNotification = async (plantId, type) => {
+    if (!auth.currentUser) return;
+    
+    try {
+      await loadNotifiedPlants();
+      
+      // Remove the notification from the set
+      notifiedPlantIds.value.delete(`${type}-${plantId}`);
+      
+      // Save the updated notified plants list
+      await saveNotifiedPlants();
+      
+      // Update read status for any existing notifications
+      const notificationsRef = collection(db, `userData/${auth.currentUser.uid}/notifications`);
+      const q = query(
+        notificationsRef, 
+        where('plantId', '==', plantId),
+        where('type', '==', type),
+        where('read', '==', false)
+      );
+      
+      const snapshot = await getDocs(q);
+      const batch = writeBatch(db);
+      
+      snapshot.docs.forEach(docRef => {
+        batch.update(docRef.ref, { read: true });
+      });
+      
+      await batch.commit();
+      
+      // Update local notifications if any were marked as read
+      if (!snapshot.empty) {
+        await loadNotifications();
+      }
+    } catch (error) {
+      console.error(`Error clearing plant ${type} notification:`, error);
+    }
+  };
+  
+  // Clear all notifications
+  const clearAllNotifications = async () => {
+    if (!auth.currentUser) return;
+    
+    loading.value = true;
+    
+    try {
+      const notificationsRef = collection(db, `userData/${auth.currentUser.uid}/notifications`);
+      const snapshot = await getDocs(notificationsRef);
+      
+      if (!snapshot.empty) {
+        const batch = writeBatch(db);
+        
+        snapshot.docs.forEach(doc => {
+          batch.delete(doc.ref);
+        });
+        
+        await batch.commit();
+        
+        // Clear local notifications
+        notifications.value = [];
+        unreadCount.value = 0;
+      }
+    } catch (error) {
+      console.error('Error clearing notifications:', error);
+    } finally {
+      loading.value = false;
+    }
+  };
   
   // Initialize notification system
-  onMounted(() => {
+  const initialize = () => {
     loadNotifications();
     checkPlantsStatus();
-    
-    // Set up periodic checks every 30 minutes
-    const interval = setInterval(checkPlantsStatus, 30 * 60 * 1000);
-    
-    // Clean up on unmount
-    onUnmounted(() => {
-      clearInterval(interval);
-    });
-  });
+  };
   
+  // Return additional utility functions
   return {
     notifications,
     unreadCount,
@@ -194,6 +307,9 @@ export function usePlantNotifications() {
     checkPlantsStatus,
     loadNotifications,
     markAsRead,
-    markAllAsRead
+    markAllAsRead,
+    clearPlantNotification, // New function to expose
+    clearAllNotifications, // New function to expose
+    initialize
   };
 }
