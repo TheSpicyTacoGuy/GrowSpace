@@ -985,9 +985,9 @@ export function usePlants(defaultItemsPerPage = 12) {
         updateData.status = "healthy"; // Reset status
         updateData.wateringDate = wateringDate;
         updateData.lastWatered = serverTimestamp();
-        updateData.wateringReminderFired = false;
+        updateData.wateringReminderFired = false; // Reset notification flag
         
-        // Add to UI update
+        // Add to UI update data
         uiUpdateData.status = "healthy";
         uiUpdateData.wateringDate = wateringDate;
         uiUpdateData.lastWatered = now;
@@ -995,6 +995,10 @@ export function usePlants(defaultItemsPerPage = 12) {
       } else if (eventType === "Fertilised") {
         updateData.lastFertilised = serverTimestamp();
         uiUpdateData.lastFertilised = now;
+        updateData.fertiliserReminderSent = false; // Reset notification flag
+        
+        // Add to UI update data
+        uiUpdateData.fertiliserReminderSent = false;
       }
 
       // Find plant in local state for optimistic update

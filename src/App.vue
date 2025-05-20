@@ -7,9 +7,11 @@ import MainFooter from "./components/MainFooter.vue";
 import MoveToTopBtn from "./components/MoveToTopBtn.vue";
 import LoadingSplash from "./components/LoadingSplash.vue";
 import { useUserRole } from "./composables/useUserRole.js";
+import { useNotifications } from "@js/Notifications.js";
 
 const isInitialLoading = ref(true);
 const { authLoading } = useUserRole();
+const { requestPermission } = useNotifications();
 
 // Watch for auth loading to complete
 watch(authLoading, (isLoading) => {
@@ -20,6 +22,9 @@ watch(authLoading, (isLoading) => {
 });
 
 onMounted(() => {
+  // Request notification permission
+  requestPermission();
+
   // Set a maximum time the splash will show (failsafe)
   setTimeout(() => {
     isInitialLoading.value = false;

@@ -4,6 +4,7 @@ import { useRouter } from "vue-router";
 import { logout } from "../js/auth/authFunctions.js";
 import { ref, onMounted } from "vue";
 import { useUserRole } from "@composables/useUserRole.js";
+import NotificationBell from "./NotificationBell.vue";
 
 const router = useRouter();
 const imageLoadError = ref(false);
@@ -341,6 +342,17 @@ onMounted(() => {
         role="status"
         aria-hidden="true"
       ></div>
+
+      <!-- For Desktop version -->
+      <div class="d-none d-lg-flex align-items-center">
+        <!-- Add notification bell before user menu -->
+        <NotificationBell v-if="currentUser" class="me-2" />
+      </div>
+
+      <!-- For Mobile version -->
+      <div class="d-flex d-lg-none align-items-center">
+        <NotificationBell v-if="currentUser" class="me-2" />
+      </div>
     </div>
   </div>
 </template>
