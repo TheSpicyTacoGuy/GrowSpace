@@ -48,12 +48,18 @@ onMounted(() => {
   <header class="header-wrapper w-100 d-lg-block">
     <NavTitleBar />
   </header>
-
   <main>
     <!-- Add different padding for mobile vs desktop -->
     <div id="page-content" class="container-fluid px-3 mx-auto pb-5 pb-lg-0">
       <!-- Add top padding only on mobile to compensate for missing navbar -->
       <div class="min-vh-75 py-4 pt-lg-2">
+        <PullToRefresh
+          class="d-lg-none"
+          style="z-index: 1000"
+          @refresh="() => $emit('refresh')"
+          :disabled="isInitialLoading"
+          :isLoading="isInitialLoading"
+        />
         <router-view v-slot="component">
           <transition appear name="slide-fade" mode="out-in">
             <component :is="component.Component" class="w-100" />
@@ -67,12 +73,4 @@ onMounted(() => {
 
   <!-- Mobile Navigation Bar - visible only on mobile -->
   <MobileNavBar />
-
-  <!-- Pull to Refresh -->
-  <PullToRefresh
-    class="d-lg-none"
-    @refresh="() => $emit('refresh')"
-    :disabled="isInitialLoading"
-    :isLoading="isInitialLoading"
-  />
 </template>
