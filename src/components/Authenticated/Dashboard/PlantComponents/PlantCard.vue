@@ -131,7 +131,6 @@ async function saveNotesChange() {
             <i class="bi bi-tag me-1 text-muted"></i>
             {{ plant.type || "Not specified" }}
           </span>
-          <!-- Type edit button removed -->
         </div>
         <hr class="my-1" />
       </div>

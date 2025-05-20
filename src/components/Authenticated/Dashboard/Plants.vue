@@ -237,82 +237,25 @@ defineOptions({ name: "PlantsComponent" });
           <i class="bi bi-plus-circle me-2"></i>Add Plant
         </button>
       </div>
-
-      <!-- Plant Mobile List -->
-      <div v-else class="p-3 pb-5 mb-5">
-        <router-link
-          v-for="plant in sortedPlants"
-          :key="plant.id"
-          :to="`/dashboard/plants/${plant.id}`"
-          class="text-decoration-none"
-        >
-          <div
-            class="d-flex align-items-center p-3 rounded-3 shadow-sm mb-3 bg-body-secondary mobile-list-item"
-          >
-            <div class="flex-shrink-0 me-3">
-              <div class="bg-success bg-opacity-10 rounded-circle p-3">
-                <i class="bi bi-flower1 text-success fs-4"></i>
-              </div>
-            </div>
-            <div class="flex-grow-1">
-              <h3 class="h6 mb-1">{{ plant.name }}</h3>
-              <div class="small text-muted d-flex align-items-center">
-                <i class="bi bi-tag me-1"></i>
-                {{ plant.type || "Not specified" }}
-              </div>
-            </div>
-            <div class="d-flex align-items-center">
-              <button
-                class="btn btn-link text-danger p-2 me-2"
-                @click.prevent.stop="confirmDelete(plant)"
-                aria-label="Delete plant"
-              >
-                <i class="bi bi-trash"></i>
-              </button>
-              <i class="bi bi-chevron-right text-muted"></i>
-            </div>
-          </div>
-        </router-link>
-
-        <!-- Load more button -->
-        <div v-if="!noMoreResults && !loading" class="d-grid mt-4">
-          <button class="btn btn-outline-primary" @click="handleLoadMore(true)">
-            Load More
-          </button>
-        </div>
-
-        <!-- Loading more indicator -->
-        <div v-if="loading" class="text-center py-3">
-          <div
-            class="spinner-border spinner-border-sm text-primary"
-            role="status"
-          >
-            <span class="visually-hidden">Loading...</span>
-          </div>
-        </div>
-      </div>
     </div>
-
-    <!-- DESKTOP VERSION: PlantsList component (unchanged) -->
-    <div class="d-none d-lg-block">
-      <PlantsList
-        :plants="sortedPlants"
-        :greenhouses="greenhouses"
-        :loading="loading"
-        :error="error"
-        :noMoreResults="noMoreResults"
-        :onDelete="confirmDelete"
-        :onWater="handleWaterPlant"
-        :onFertilise="handleFertilisePlant"
-        :onUpdate="handleUpdatePlant"
-        :onLoadMore="handleLoadMore"
-        :openAddModal="openAddModal"
-        :selectedGreenhouseId="filters.greenhouseId"
-        :searchTerm="filters.searchTerm"
-        @clearFilters="clearFilters"
-        @plant-updated="handlePlantUpdated"
-      />
-    </div>
+    <!-- Plants List -->
+    <PlantsList
+      :plants="sortedPlants"
+      :greenhouses="greenhouses"
+      :loading="loading"
+      :error="error"
+      :noMoreResults="noMoreResults"
+      :onDelete="confirmDelete"
+      :onWater="handleWaterPlant"
+      :onFertilise="handleFertilisePlant"
+      :onUpdate="handleUpdatePlant"
+      :onLoadMore="handleLoadMore"
+      :openAddModal="openAddModal"
+      :selectedGreenhouseId="filters.greenhouseId"
+      :searchTerm="filters.searchTerm"
+      @clearFilters="clearFilters"
+      @plant-updated="handlePlantUpdated"
+    />
 
     <!-- Modals - shared between mobile and desktop -->
     <AddPlantModal

@@ -31,7 +31,7 @@ const props = defineProps({
 });
 
 // Emit events for actions
-const emit = defineEmits(["action", "secondaryAction"]);
+defineEmits(["action", "secondaryAction"]);
 
 const goBack = () => {
   if (props.backTo) {
@@ -44,7 +44,7 @@ const goBack = () => {
 
 <template>
   <div
-    class="mobile-page-header d-block d-lg-none bg-primary text-white shadow-sm rounded-3"
+    class="mobile-page-header d-block bg-primary text-white shadow-sm rounded-3 mb-3"
   >
     <div class="d-flex align-items-center justify-content-between">
       <!-- Back button area -->

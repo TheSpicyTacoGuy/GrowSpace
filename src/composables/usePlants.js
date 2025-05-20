@@ -1243,27 +1243,37 @@ export function usePlants(defaultItemsPerPage = 12) {
   // ==================== EVENT HANDLERS ====================
   // Water plant shorthand
   const handleWater = async (plant) => {
-    return await recordCareEvent(plant.id, "Watered");
+    // Check if plant is an object or just an ID
+    const plantId = typeof plant === 'object' ? plant.id : plant;
+    console.log("Watering plant ID:", plantId);
+    return await recordCareEvent(plantId, "Watered");
   };
   
-  // Fertilize plant shorthand
+  // Fertilise plant shorthand
   const handleFertilise = async (plant) => {
-    return await recordCareEvent(plant.id, "Fertilised");
+  // Check if plant is an object or just an ID
+    const plantId = typeof plant === 'object' ? plant.id : plant;
+    return await recordCareEvent(plantId, "Fertilised");
   };
 
   // Alternative naming for handlers
   const handleWaterPlant = async (plantId) => {
+    console.log("handleWaterPlant called with ID:", plantId);
+    
+    if (!plantId) {
+      console.error("Missing plant ID in handleWaterPlant");
+      return null;
+    }
+    
     try {
-      const result = await handleWater(plantId);
+      // Make sure we're passing the ID, not an object
+      const plantIdString = typeof plantId === 'object' ? plantId.id : plantId;
+      console.log("Using plant ID for watering:", plantIdString);
       
-      // After successfully watering, clear the notification
-      const { clearPlantNotification } = usePlantNotifications();
-      await clearPlantNotification(plantId, 'water');
-      
-      return result;
+      return await handleWater(plantIdString);
     } catch (error) {
       console.error("Error watering plant:", error);
-      return false;
+      return null;
     }
   };
 

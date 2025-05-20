@@ -1,4 +1,4 @@
-import { computed, reactive, watch } from "vue";
+import { computed, reactive, watch, ref } from "vue";
 import {
   collection,
   getDocs,
@@ -33,6 +33,9 @@ export function useGreenhouses(itemsPerPage = 50) {
     initialized: false,
     fetchTimestamp: 0, // Track last fetch time for cache invalidation
   });
+
+  // Find where you define version and ensure it's a ref
+  const version = ref(0); // Make sure it's initialized
 
   // Computed properties
   const sortedGreenhouses = computed(() => {
@@ -550,5 +553,8 @@ export function useGreenhouses(itemsPerPage = 50) {
     searchGreenhouses,
     setSortBy,
     reset,
+
+    // Include version in the return
+    version: computed(() => version.value),
   };
 }

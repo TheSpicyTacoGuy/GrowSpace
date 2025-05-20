@@ -15,6 +15,17 @@ export function isMobileDevice() {
          window.innerWidth <= 768;
 }
 
+// Check if running in development mode
+export function isDevMode() {
+  return (
+    window.location.hostname === 'localhost' || 
+    window.location.hostname === '127.0.0.1' ||
+    window.location.hostname.indexOf('192.168.') === 0 ||
+    window.location.port === '3000' || 
+    window.location.port === '8080'
+  );
+}
+
 // Check if element is an input field, textarea, or other editable element
 function isEditableElement(element) {
   if (!element) return false;
@@ -33,9 +44,13 @@ function isEditableElement(element) {
 
 // Initialize app behaviors
 export function initializeAppBehaviors() {
-  // Skip on desktop unless in standalone mode
-  if (!isMobileDevice() && !isRunningAsInstalledApp()) return;
+  // Skip on desktop unless in standalone mode, and always skip in development mode
+  if (isDevMode() || (!isMobileDevice() && !isRunningAsInstalledApp())) {
+    console.log('App behaviors skipped: development mode or desktop browser');
+    return;
+  }
   
+  // Rest of the code remains the same...
   // Prevent context menu (right-click) EXCEPT on editable elements
   document.addEventListener('contextmenu', (e) => {
     // Allow context menu on editable elements

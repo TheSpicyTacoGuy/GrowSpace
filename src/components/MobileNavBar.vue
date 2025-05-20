@@ -129,7 +129,7 @@ const navigateTo = (item) => {
 
 <template>
   <nav
-    class="mobile-nav d-block d-lg-none shadow-lg border-top-0 bg-body rounded-5 mb-3 w-100 position-fixed z-index-1030"
+    class="mobile-nav d-block d-xl-none shadow-lg border-top-0 bg-body rounded-5 mb-3 w-100 position-fixed z-index-1030"
   >
     <div class="d-flex justify-content-around align-items-center">
       <div

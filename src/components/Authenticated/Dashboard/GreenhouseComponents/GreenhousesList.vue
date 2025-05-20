@@ -1,5 +1,9 @@
 <script setup>
 import GreenhouseCard from "./GreenhouseCard.vue";
+import MobileCard from "../MobileCard.vue";
+import { useRouter } from "vue-router";
+
+const router = useRouter();
 
 defineProps({
   greenhouses: {
@@ -31,6 +35,11 @@ defineProps({
     required: true,
   },
 });
+
+// Function to navigate to greenhouse detail page
+function navigateToGreenhouse(greenhouseId) {
+  router.push(`/dashboard/greenhouses/${greenhouseId}`);
+}
 </script>
 
 <template>
@@ -77,8 +86,8 @@ defineProps({
     </div>
   </div>
 
-  <!-- Greenhouse List -->
-  <div v-else class="container-fluid">
+  <!-- DESKTOP VIEW: Greenhouse List -->
+  <div v-else class="container-fluid d-none d-lg-block">
     <div class="row g-4 mb-4 row-cols-1 row-cols-md-2 row-cols-lg-3">
       <div v-for="greenhouse in greenhouses" :key="greenhouse.id" class="col">
         <GreenhouseCard :greenhouse="greenhouse" :onDelete="onDelete" />
@@ -97,6 +106,55 @@ defineProps({
     </div>
 
     <!-- Load more button -->
+    <div
+      v-if="!loading && !noMoreResults && greenhouses.length > 0"
+      class="text-center my-4"
+    >
+      <button class="btn btn-outline-primary" @click="onLoadMore(true)">
+        <i class="bi bi-plus-lg me-2"></i>Load More
+      </button>
+    </div>
+  </div>
+
+  <!-- MOBILE VIEW: Mobile Card List -->
+  <div class="d-block d-lg-none">
+    <div v-for="greenhouse in greenhouses" :key="greenhouse.id" class="mb-3">
+      <MobileCard
+        :title="greenhouse.name"
+        :subtitle="greenhouse.description"
+        :badge="
+          greenhouse.plants
+            ? `${greenhouse.plants.length} plant(s)`
+            : '0 plants'
+        "
+        :badgeClass="'bg-primary'"
+        :badge2="greenhouse.location || 'No location set'"
+        :badge2Class="'bg-body-secondary'"
+        :icon="'bi-house-fill'"
+        :iconClass="'bg-primary bg-opacity-10 text-primary'"
+        @click="navigateToGreenhouse(greenhouse.id)"
+      >
+        <template #actions>
+          <button
+            class="btn btn-sm btn-link text-danger"
+            @click.stop="onDelete(greenhouse)"
+            v-tooltip="'Delete greenhouse'"
+          >
+            <i class="bi bi-trash"></i>
+          </button>
+        </template>
+      </MobileCard>
+    </div>
+
+    <!-- Loading more indicator - Mobile -->
+    <div v-if="loading && greenhouses.length > 0" class="text-center my-4">
+      <div class="spinner-border spinner-border-sm text-primary" role="status">
+        <span class="visually-hidden">Loading more...</span>
+      </div>
+      <span class="text-muted ms-2">Loading more...</span>
+    </div>
+
+    <!-- Load more button - Mobile -->
     <div
       v-if="!loading && !noMoreResults && greenhouses.length > 0"
       class="text-center my-4"
