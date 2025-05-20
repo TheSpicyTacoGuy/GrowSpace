@@ -91,7 +91,6 @@ const goBack = () => {
   padding: 12px 16px;
   position: sticky;
   top: 0;
-  z-index: 1020;
 }
 
 .header-left,

@@ -660,9 +660,9 @@ a:hover {
 .user-dropdown {
   min-width: 280px;
   border-radius: 12px;
-  border: none;
   overflow: hidden;
   padding: 0;
+  transition: all 0.2s ease;
 }
 
 .user-dropdown .dropdown-item {
@@ -724,14 +724,12 @@ a:hover {
   transform: translateY(0);
   box-shadow: 0 1px 3px rgba(var(--bs-primary-rgb), 0.2);
 }
-
-/* Your existing styles */
 .user-dropdown {
   min-width: 280px;
   border-radius: 12px;
-  border: none;
   overflow: hidden;
   padding: 0;
+  transition: all 0.2s ease;
 }
 
 .tip-card {
@@ -752,6 +750,33 @@ a:hover {
   padding: 0.35em 0.6em;
   display: inline-flex;
   align-items: center;
+}
+
+.notification-dropdown {
+  min-width: 320px;
+  max-width: 400px;
+  padding: 0;
+  border-radius: 0.5rem;
+  overflow: hidden;
+  transition: all 0.2s ease;
+}
+
+.notification-list {
+  max-height: 400px;
+}
+
+.notification-item {
+  transition: background-color 0.15s ease;
+}
+
+.notification-item:hover {
+  background-color: var(--bs-dropdown-link-hover-bg);
+}
+
+.notification-icon {
+  width: 40px;
+  height: 40px;
+  background-color: rgba(var(--bs-primary-rgb), 0.1);
 }
 
 /* === Mobile Navigation === */

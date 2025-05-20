@@ -4,7 +4,6 @@ import { useRouter } from "vue-router";
 import { usePlantNotifications } from "@composables/usePlantNotifications.js";
 
 const router = useRouter();
-const isOpen = ref(false);
 const showConfirmation = ref(false);
 const {
   notifications,
@@ -14,22 +13,6 @@ const {
   loadNotifications,
   clearAllNotifications,
 } = usePlantNotifications();
-
-// Toggle dropdown visibility
-const toggleNotifications = () => {
-  isOpen.value = !isOpen.value;
-
-  // If opening, refresh the notifications
-  if (isOpen.value) {
-    loadNotifications();
-  }
-};
-
-// Close dropdown
-const closeNotifications = () => {
-  isOpen.value = false;
-  showConfirmation.value = false;
-};
 
 // Show confirmation dialog
 const confirmClearAll = () => {
@@ -50,8 +33,6 @@ const handleNotificationClick = (notification) => {
   if (notification.plantId) {
     router.push(`/dashboard/plants/${notification.plantId}`);
   }
-
-  closeNotifications();
 };
 
 // Format relative time for notifications
@@ -72,18 +53,23 @@ const getRelativeTime = (date) => {
   return `${days} day${days !== 1 ? "s" : ""} ago`;
 };
 
-// Force load notifications when bell is mounted
+// Load notifications only once when component is mounted
 onMounted(() => {
   loadNotifications();
 });
 </script>
 
 <template>
-  <div class="position-relative">
+  <div class="dropdown">
+    <!-- Notification Bell Button -->
     <button
       class="btn btn-link position-relative"
-      @click="toggleNotifications"
+      id="notificationDropdown"
+      data-bs-toggle="dropdown"
+      data-bs-auto-close="outside"
+      aria-expanded="false"
       aria-label="Notifications"
+      title="Notifications"
     >
       <i class="bi bi-bell fs-5"></i>
       <span
@@ -95,13 +81,14 @@ onMounted(() => {
       </span>
     </button>
 
-    <!-- Notification dropdown -->
+    <!-- Notification Dropdown Menu -->
     <div
-      v-if="isOpen"
-      class="position-absolute top-100 end-0 shadow-lg bg-body rounded-3 notification-dropdown"
+      class="dropdown-menu dropdown-menu-end shadow-lg notification-dropdown"
+      aria-labelledby="notificationDropdown"
     >
+      <!-- Header with actions -->
       <div
-        class="d-flex justify-content-between align-items-center p-3 border-bottom"
+        class="d-flex justify-content-between align-items-center p-3 border-bottom bg-body-tertiary"
       >
         <h5 class="mb-0">Notifications</h5>
         <div class="d-flex gap-2">
@@ -114,7 +101,6 @@ onMounted(() => {
           </button>
           <button
             v-if="notifications.length > 0"
-            v-tooltip
             title="Clear all notifications"
             class="btn btn-sm btn-link text-decoration-none text-danger"
             @click="confirmClearAll"
@@ -143,7 +129,8 @@ onMounted(() => {
         </div>
       </div>
 
-      <div class="overflow-auto" style="max-height: 400px">
+      <!-- Notifications List -->
+      <div class="overflow-auto notification-list">
         <div
           v-if="notifications.length === 0"
           class="text-center py-4 text-muted"
@@ -153,12 +140,13 @@ onMounted(() => {
         </div>
 
         <div v-else>
-          <div
+          <a
             v-for="notification in notifications"
             :key="notification.id"
-            class="p-3 border-bottom notification-item"
+            href="#"
+            class="dropdown-item p-3 border-bottom notification-item"
             :class="{ 'bg-body-secondary': !notification.read }"
-            @click="handleNotificationClick(notification)"
+            @click.prevent="handleNotificationClick(notification)"
           >
             <div class="d-flex">
               <div
@@ -183,14 +171,15 @@ onMounted(() => {
                 </div>
               </div>
             </div>
-          </div>
+          </a>
         </div>
       </div>
 
+      <!-- Close Button -->
       <div class="p-2 border-top">
         <button
           class="btn btn-sm btn-outline-secondary w-100"
-          @click="closeNotifications"
+          data-bs-toggle="dropdown"
         >
           Close
         </button>
@@ -198,38 +187,3 @@ onMounted(() => {
     </div>
   </div>
 </template>
-
-<style scoped>
-.notification-dropdown {
-  width: 400px;
-  max-width: 100vw;
-  z-index: 1050;
-}
-
-.notification-item {
-  cursor: pointer;
-  transition: background-color 0.2s;
-}
-
-.notification-item:hover {
-  background-color: rgba(var(--bs-primary-rgb), 0.08);
-}
-
-.notification-icon {
-  width: 36px;
-  height: 36px;
-}
-
-.confirmation-dialog {
-  animation: fadeIn 0.2s;
-}
-
-@keyframes fadeIn {
-  from {
-    opacity: 0;
-  }
-  to {
-    opacity: 1;
-  }
-}
-</style>
