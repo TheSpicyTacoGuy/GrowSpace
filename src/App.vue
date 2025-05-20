@@ -32,7 +32,7 @@ onMounted(() => {
   <LoadingSplash :isLoading="isInitialLoading" />
 
   <!-- Hide NavTitleBar on mobile, show only on lg screens and up -->
-  <header class="header-wrapper w-100 d-none d-lg-block">
+  <header class="header-wrapper w-100 d-lg-block">
     <NavTitleBar />
   </header>
 

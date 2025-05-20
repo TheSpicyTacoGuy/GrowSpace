@@ -60,8 +60,15 @@ onMounted(() => {
           aria-labelledby="mobileNavOffcanvasLabel"
         >
           <div class="offcanvas-header">
+            <img
+              src="@assets/images/GrowSpaceLogo.svg"
+              alt="GrowSpace Logo"
+              class="logo img-fluid"
+              style="width: 64px"
+            />
+            <div class="vr mx-2"></div>
             <h5 class="offcanvas-title" id="mobileNavOffcanvasLabel">
-              GrowSpace
+              GrowSpace Menu
             </h5>
             <button
               type="button"
@@ -105,22 +112,6 @@ onMounted(() => {
                   About
                 </a>
               </li>
-              <li class="nav-item mb-2" v-if="currentUser">
-                <a
-                  class="nav-link dashboard-btn py-2 px-3 d-flex align-items-center mt-2"
-                  :class="[
-                    router.currentRoute.value.path.includes('dashboard')
-                      ? 'active'
-                      : '',
-                  ]"
-                  href="#"
-                  @click.prevent="navigateTo('dashboard')"
-                  data-bs-dismiss="offcanvas"
-                >
-                  <i class="bi bi-grid-1x2-fill me-2"></i>
-                  Dashboard
-                </a>
-              </li>
             </ul>
           </div>
         </div>
@@ -128,12 +119,16 @@ onMounted(() => {
       <!-- Vertical Divider -->
       <div class="d-xl-none vr mx-2 my-2"></div>
       <a
-        class="navbar-brand text-primary fw-bold"
+        class="navbar-brand text-primary fw-bold mr-0"
         href="#"
         @click.prevent="navigateTo('home')"
       >
-        GrowSpace</a
-      >
+        <img
+          src="@assets/images/GrowSpaceLogo.svg"
+          alt="GrowSpace Logo"
+          class="logo img-fluid"
+          style="width: 64px"
+      /></a>
       <!-- Full Links for Larger Screens -->
       <nav class="d-none d-xl-flex">
         <ul class="navbar-nav">
@@ -167,14 +162,15 @@ onMounted(() => {
               About
             </a>
           </li>
-          <li class="nav-item ms-2" v-if="currentUser">
+          <li
+            class="nav-item ms-2"
+            v-if="
+              currentUser &&
+              !router.currentRoute.value.path.includes('dashboard')
+            "
+          >
             <a
               class="nav-link dashboard-btn py-2 px-3 d-flex align-items-center"
-              :class="[
-                router.currentRoute.value.path.includes('dashboard')
-                  ? 'active'
-                  : '',
-              ]"
               href="#"
               @click.prevent="navigateTo('dashboard')"
             >

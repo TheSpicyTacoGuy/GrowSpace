@@ -16,7 +16,6 @@ const showMoreMenu = ref(false);
 
 // Items for authenticated users
 const authenticatedItems = [
-  { icon: "house-fill", name: "Home", route: "/", component: null },
   {
     icon: "dashboard",
     name: "Dashboard",
