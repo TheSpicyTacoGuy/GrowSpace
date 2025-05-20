@@ -9,7 +9,7 @@ import LoadingSplash from "./components/LoadingSplash.vue";
 import { useUserRole } from "./composables/useUserRole.js";
 import { useNotifications } from "@js/Notifications.js";
 import { initialiseNotifications } from "@js/NotificationManager";
-import { usePlantNotifications } from "@composables/usePlantNotifications";
+import { initializeAppBehaviors } from "@js/appBehaviors"; // Add this import
 
 const isInitialLoading = ref(true);
 const { authLoading } = useUserRole();
@@ -30,17 +30,13 @@ onMounted(() => {
   // Request notification permission
   requestPermission();
 
+  // Initialize app-like behaviors
+  initializeAppBehaviors();
+
   // Set a maximum time the splash will show (failsafe)
   setTimeout(() => {
     isInitialLoading.value = false;
   }, 3000); // Max 3 seconds even if auth takes longer
-
-  // This will setup the auth listener that triggers notifications
-  // when a user logs in
-
-  // Initialize plant notifications after auth is loaded
-  const { initialize } = usePlantNotifications();
-  initialize();
 });
 </script>
 

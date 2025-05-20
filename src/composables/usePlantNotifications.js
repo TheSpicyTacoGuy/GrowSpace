@@ -87,7 +87,7 @@ export function usePlantNotifications() {
         await sendNotification({
           title: "Plant needs water!",
           body: `${plant.name} needs watering.`,
-          icon: "./favicon.ico",
+          icon: "/favicon.ico", // Fix: use absolute path
           type: "water",
           plantId: plant.id,
           plantName: plant.name
@@ -102,7 +102,7 @@ export function usePlantNotifications() {
         await sendNotification({
           title: "Plant needs fertiliser!",
           body: `${plant.name} needs fertilising.`,
-          icon: "./favicon.ico",
+          icon: "/favicon.ico", // Fix: use absolute path
           type: "fertiliser",
           plantId: plant.id,
           plantName: plant.name

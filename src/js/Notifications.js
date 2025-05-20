@@ -29,9 +29,25 @@ export function useNotifications() {
       if (!granted) return false;
     }
     
-    // Create and show notification
+    // Create and show notification - ADD THESE OPTIONS
     try {
-      const notification = new Notification(title, options);
+      const notification = new Notification(title, {
+        ...options,
+        // These are the critical properties to ensure notifications display:
+        requireInteraction: true, // Don't auto-dismiss on some browsers
+        silent: false,           // Allow sound (browser dependent)
+        icon: '/favicon.ico',    // Use absolute path
+        tag: options.type || 'growspace', // Group similar notifications
+      });
+      
+      // Add notification click handler to open app
+      notification.onclick = () => {
+        window.focus();
+        if (options.data?.plantId) {
+          window.location.href = `/dashboard/plants/${options.data.plantId}`;
+        }
+      };
+      
       return notification;
     } catch (error) {
       console.error('Error showing notification:', error);

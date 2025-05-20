@@ -866,3 +866,35 @@ a:hover {
     margin-bottom: 60px;
   }
 }
+
+/* PWA-specific styles */
+body.pwa-installed {
+  /* No text selection cursor */
+  cursor: default;
+  
+  /* Disable pull-down refresh */
+  overscroll-behavior-y: none;
+  
+  /* No highlight on tap */
+  -webkit-tap-highlight-color: transparent;
+  
+  /* Use system font for native feel */
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, 
+    Arial, sans-serif, "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol";
+}
+
+/* Hide browser UI elements when in PWA mode */
+body.pwa-installed .browser-only {
+  display: none !important;
+}
+
+/* Make buttons feel more tactile */
+@media (max-width: 991.98px) {
+  button:active, 
+  .btn:active,
+  .nav-link:active,
+  .list-group-item:active {
+    transform: scale(0.97);
+    transition: transform 0.1s ease;
+  }
+}

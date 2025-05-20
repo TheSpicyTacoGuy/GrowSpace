@@ -75,7 +75,12 @@ export function initialiseNotifications() {
           if (isSupported.value) {
             await showNotification(`${plant.name} needs water!`, {
               body: `Your ${plant.name} should be watered today.`,
-              icon: '/favicon.ico'
+              icon: '/favicon.ico',
+              requireInteraction: true,
+              data: {
+                plantId: plant.id,
+                type: 'water'
+              }
             });
           }
           
@@ -100,7 +105,12 @@ export function initialiseNotifications() {
           if (isSupported.value) {
             await showNotification(`${plant.name} needs fertiliser!`, {
               body: `Your ${plant.name} should be fertilised today.`,
-              icon: '/favicon.ico'
+              icon: '/favicon.ico',
+              requireInteraction: true,
+              data: {
+                plantId: plant.id,
+                type: 'fertiliser'
+              }
             });
           }
           
