@@ -72,7 +72,7 @@ onUnmounted(() => {
 <template>
   <div ref="pullArea" class="position-relative">
     <div
-      class="position-absolute start-50 translate-middle-x badge rounded-pill bg-body-tertiary shadow-sm pull-indicator z-index-1"
+      class="position-absolute start-50 translate-middle-x badge rounded-pill bg-body-tertiary text-muted shadow-sm pull-indicator z-index-1"
       :class="{ visible: distance >= threshold || props.isLoading }"
     >
       <div
