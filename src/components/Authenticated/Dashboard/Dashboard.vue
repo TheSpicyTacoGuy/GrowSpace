@@ -30,7 +30,7 @@ defineOptions({
 </script>
 
 <template>
-  <div class="container py-3">
+  <div>
     <!-- Dashboard Header -->
     <DashboardHeader />
 
