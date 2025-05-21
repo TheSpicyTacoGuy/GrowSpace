@@ -1,5 +1,5 @@
 <template>
-  <div class="container-fluid bg-body-tertiary rounded-5 shadow-sm p-4">
+  <div class="container bg-body-tertiary rounded-5 shadow-sm p-4">
     <h1 class="mb-4">Latest News</h1>
 
     <!-- Search filters -->

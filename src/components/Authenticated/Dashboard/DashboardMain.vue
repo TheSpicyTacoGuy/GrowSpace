@@ -11,7 +11,7 @@ const { checkActiveRoute, isActive, navigateTo } = useNavigation();
 
 <template>
   <div class="dashboard">
-    <div class="container-fluid px-2 px-md-3">
+    <div class="container px-2 px-md-3">
       <div class="row">
         <!-- Sidebar Desktop -->
         <nav
@@ -113,7 +113,7 @@ const { checkActiveRoute, isActive, navigateTo } = useNavigation();
         <!-- Main Content -->
         <main class="col-md-12 ms-sm-auto col-xl-10 px-0 px-md-4">
           <div
-            class="container-fluid p-3 p-md-4 bg-body-tertiary rounded-5 shadow-sm"
+            class="container-fluid p-3 p-md-4 bg-body-tertiary rounded-5 shadow-sm h-100"
           >
             <router-view name="dashboard" v-slot="{ Component }">
               <transition appear name="slide-fade" mode="out-in">

@@ -27,7 +27,7 @@ function navigateTo(routeName) {
 
 <template>
   <div
-    class="container-fluid header-wrapper d-flex flex-wrap border-bottom w-100 align-items-center justify-content-between bg-body-tertiary shadow-lg"
+    class="container header-wrapper d-flex flex-wrap w-100 align-items-center justify-content-between bg-body-tertiary shadow-lg rounded-5"
   >
     <nav class="navbar navbar-expand-xl">
       <!-- Mobile Menu Button -->

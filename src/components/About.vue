@@ -1,5 +1,5 @@
 <template>
-  <div class="container-fluid p-4 bg-body-tertiary rounded-5 shadow-sm">
+  <div class="container p-4 bg-body-tertiary rounded-5 shadow-sm">
     <h1 class="mb-4">About GrowSpace</h1>
 
     <!-- App description paragraph -->

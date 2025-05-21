@@ -30,7 +30,55 @@
           <h1 class="logo-text text-primary">GrowSpace</h1>
         </div>
         <h3 class="mb-4 text-center">Sign In</h3>
-        <hr />
+        <input
+          type="email"
+          class="form-control mb-3"
+          placeholder="Email"
+          aria-label="Email"
+          required
+          autofocus
+          autocomplete="email"
+          v-model="email"
+        />
+        <input
+          type="password"
+          class="form-control mb-3"
+          placeholder="Password"
+          aria-label="Password"
+          required
+          autocomplete="current-password"
+          v-model="password"
+        />
+        <button
+          class="btn btn-primary w-100 mb-3"
+          @click="handleLogin"
+          :disabled="loading"
+          type="button"
+        >
+          <span
+            v-if="loading"
+            class="spinner-border spinner-border-sm me-2"
+            role="status"
+            aria-hidden="true"
+          ></span>
+          Sign In
+        </button>
+        <!-- Or HR -->
+        <!-- The email and password sign in is for marking and not for the final version.-->
+        <div class="text-center mb-3">
+          <p class="text-muted">
+            Please use the above inputs for marking so you don't have to use
+            Google or Facebook. <br /><b>email:</b> test@test.com <br /><b
+              >pass:</b
+            >
+            Password1@
+          </p>
+        </div>
+        <div class="d-flex align-items-center mb-4">
+          <hr class="flex-grow-1" />
+          <span class="mx-2">or</span>
+          <hr class="flex-grow-1" />
+        </div>
         <button
           class="btn btn-primary w-100 login-btn d-flex align-items-center justify-content-center"
           @click="handleGoogleLogin"
@@ -73,13 +121,31 @@
 
 <script setup>
 import { ref } from "vue";
-import { login, loginWithFacebook } from "../js/auth/authFunctions.js";
+import {
+  login,
+  loginWithFacebook,
+  loginWithEmailPassword,
+} from "@js/auth/authFunctions.js";
 
 defineOptions({
   name: "LoginForm",
 });
 
 const loading = ref(false);
+const email = ref(""); // Add these refs for form inputs
+const password = ref("");
+
+const handleLogin = async () => {
+  loading.value = true;
+  try {
+    await loginWithEmailPassword(email.value, password.value);
+  } catch (error) {
+    console.error("Login error:", error);
+    // Error is already handled in the login function
+  } finally {
+    loading.value = false;
+  }
+};
 
 const handleGoogleLogin = async () => {
   loading.value = true;

@@ -4,6 +4,7 @@ import {
   signOut,
   GoogleAuthProvider,
   FacebookAuthProvider,
+  signInWithEmailAndPassword,
 } from "firebase/auth";
 import { getFirestore, doc, setDoc, getDoc } from "firebase/firestore";
 import { showToast } from "../toast";
@@ -89,6 +90,75 @@ async function loginWithFacebook() {
   }
 }
 
+// Email and password login function
+async function loginWithEmailPassword(email, password) {
+  try {
+    // Validate inputs
+    if (!email || !password) {
+      showToast("Please enter both email and password", "warning");
+      return;
+    }
+
+    // Sign in with Firebase
+    const userCredential = await signInWithEmailAndPassword(
+      auth,
+      email,
+      password
+    );
+    const user = userCredential.user;
+
+    // Check if user doc exists, if not, create with role "user"
+    const userRef = doc(db, "userData", user.uid);
+    const userSnap = await getDoc(userRef);
+    if (!userSnap.exists()) {
+      await setDoc(userRef, {
+        displayName: user.displayName || "",
+        email: user.email || "",
+        role: "user", // Default role
+        createdAt: new Date(),
+      });
+    }
+
+    // Redirect to Dashboard
+    router.push("/dashboard");
+    showToast("Login successful, welcome back!", "success");
+
+    // Initialize and check notifications
+    const notificationManager = initialiseNotifications();
+    notificationManager.checkNotifications();
+
+    return user;
+  } catch (error) {
+    console.error("Email/Password Authentication error:", error);
+
+    // Handle specific error codes
+    switch (error.code) {
+      case "auth/user-not-found":
+        showToast("No account found with this email", "danger");
+        break;
+      case "auth/wrong-password":
+        showToast("Incorrect password", "danger");
+        break;
+      case "auth/invalid-email":
+        showToast("Invalid email format", "danger");
+        break;
+      case "auth/user-disabled":
+        showToast("This account has been disabled", "danger");
+        break;
+      case "auth/too-many-requests":
+        showToast(
+          "Too many failed login attempts. Please try again later.",
+          "danger"
+        );
+        break;
+      default:
+        showToast("Login failed. Please try again.", "danger");
+    }
+
+    throw error; // Rethrow to let the component handle it
+  }
+}
+
 async function logout() {
   try {
     await signOut(auth);
@@ -125,4 +195,10 @@ async function fetchUserRole(uid) {
 }
 
 //Export the functions
-export { login, loginWithFacebook, logout, fetchUserRole };
+export {
+  login,
+  loginWithFacebook,
+  logout,
+  fetchUserRole,
+  loginWithEmailPassword,
+};

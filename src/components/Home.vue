@@ -1,5 +1,5 @@
 <template>
-  <div class="container-fluid p-4 bg-body-tertiary rounded-5 shadow-sm">
+  <div class="container p-4 bg-body-tertiary rounded-5 shadow-sm">
     <div class="mb-5">
       <h1 class="display-3 fw-bold mb-3 text-success">GrowSpace</h1>
       <p class="lead mx-auto text-start">
