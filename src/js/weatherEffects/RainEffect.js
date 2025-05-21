@@ -46,7 +46,7 @@ export default class RainEffect {
     const posX = Math.random() * 100;
 
     // Random speed for more natural effect
-    const speed = Math.random() * 0.5 + 0.7;
+    const speed = Math.random() * 0.06 + 0.2;
 
     // Apply styles
     drop.style.cssText = `
