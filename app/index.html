@@ -1,68 +1,110 @@
 <!doctype html>
 <html lang="en">
   <head>
-    <meta charset="utf-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+    <meta charset="utf-8" />
+    <meta
+      name="viewport"
+      content="width=device-width, initial-scale=1, viewport-fit=cover"
+    />
+    <link rel="icon" type="image/svg+xml" href="/cos30043/s101634222/project/app/favicon.svg" />
     <link rel="icon" href="./favicon.ico" />
+    <link rel="shortcut icon" href="/cos30043/s101634222/project/app/favicon.ico" />
     <title>GrowSpace</title>
-    <meta name="theme-color" content="#ffffff" id="theme-color">
-    
-    <link rel="apple-touch-icon" href="./apple-touch-icon.png">
-    <link rel="icon" type="image/png" sizes="192x192" href="./android-chrome-192x192.png">
-    <link rel="icon" type="image/png" sizes="512x512" href="./android-chrome-512x512.png">
-    <link rel="icon" type="image/png" sizes="16x16" href="./favicon-16x16.png">
-    <link rel="icon" type="image/png" sizes="32x32" href="./favicon-32x32.png">
-    <link rel="manifest" href="/cos30043/s101634222/project/app/manifest.json">
-    
-    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="apple-mobile-web-app-title" content="GrowSpace" />
+    <meta name="theme-color" content="#ffffff" id="theme-color" />
+
+    <link rel="apple-touch-icon" href="./apple-touch-icon.png" />
+    <link
+      rel="icon"
+      type="image/png"
+      sizes="192x192"
+      href="./web-app-manifest-192x192.png"
+    />
+    <link
+      rel="icon"
+      type="image/png"
+      sizes="512x512"
+      href="./web-app-manifest-512x512.png"
+    />
+    <link
+      rel="icon"
+      type="image/png"
+      sizes="16x16"
+      href="./favicon-16x16.png"
+    />
+    <link
+      rel="icon"
+      type="image/png"
+      sizes="32x32"
+      href="./favicon-32x32.png"
+    />
+    <link
+      rel="icon"
+      type="image/png"
+      sizes="96x96"
+      href="./favicon-96x96.png"
+    />
+    <link rel="manifest" href="/cos30043/s101634222/project/app/manifest.json" />
+
+    <meta
+      name="apple-mobile-web-app-status-bar-style"
+      content="black-translucent"
+    />
     <script>
-      (function() {
+      (function () {
         // Theme utility functions
         function getThemeCookie() {
           var match = document.cookie.match(/(?:^|;\s*)theme=([^;]*)/);
           return match ? decodeURIComponent(match[1]) : null;
         }
-        
+
         function getSystemTheme() {
-          return window.matchMedia && 
+          return window.matchMedia &&
             window.matchMedia("(prefers-color-scheme: dark)").matches
             ? "dark"
             : "light";
         }
-        
+
         function getPreferredTheme() {
-          var theme = getThemeCookie() || localStorage.getItem("theme") || "system";
+          var theme =
+            getThemeCookie() || localStorage.getItem("theme") || "system";
           return theme === "system" ? getSystemTheme() : theme;
         }
-        
+
         function applyTheme(theme) {
           var html = document.documentElement;
           html.removeAttribute("data-bs-theme");
-          
+
           if (theme === "dark" || theme === "light") {
             html.setAttribute("data-bs-theme", theme);
           }
-          
+
           // Update theme color meta tag
-          var meta = document.getElementById('theme-color');
+          var meta = document.getElementById("theme-color");
           if (meta) {
-            meta.setAttribute('content', theme === 'dark' ? '#2a2c2e' : '#f8f9fa');
+            meta.setAttribute(
+              "content",
+              theme === "dark" ? "#2a2c2e" : "#f8f9fa"
+            );
           }
         }
-        
+
         // Initial theme application
         applyTheme(getPreferredTheme());
-        
+
         // Listen for system theme changes
-        window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', function() {
-          var currentTheme = getThemeCookie() || localStorage.getItem("theme") || "system";
-          if (currentTheme === "system") {
-            applyTheme(getSystemTheme());
-          }
-        });
-        
+        window
+          .matchMedia("(prefers-color-scheme: dark)")
+          .addEventListener("change", function () {
+            var currentTheme =
+              getThemeCookie() || localStorage.getItem("theme") || "system";
+            if (currentTheme === "system") {
+              applyTheme(getSystemTheme());
+            }
+          });
+
         // Ensure theme is applied after DOM is fully loaded
-        document.addEventListener('DOMContentLoaded', function() {
+        document.addEventListener("DOMContentLoaded", function () {
           applyTheme(getPreferredTheme());
         });
       })();
