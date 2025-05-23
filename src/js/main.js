@@ -16,7 +16,7 @@ import { createApp } from "vue";
 import App from "../App.vue";
 import { Tooltip } from "bootstrap";
 
-//Inintialise Tooltips
+//Initialise Tooltips
   const tooltipTriggerList = document.querySelectorAll(
     '[data-bs-toggle="tooltip"]'
   );
@@ -27,15 +27,24 @@ import { Tooltip } from "bootstrap";
   const app = createApp(App);
 
   app.directive("tooltip", {
-    mounted(el) {
-        new Tooltip(el);
+    mounted(el, binding) {
+      const options = binding.value || {};
+      new Tooltip(el, options);
+    },
+    updated(el, binding) {
+      const tooltip = Tooltip.getInstance(el);
+      if (tooltip) {
+        tooltip.dispose();
+      }
+      const options = binding.value || {};
+      new Tooltip(el, options);
     },
     unmounted(el) {
-        const tooltip = Tooltip.getInstance(el);
-        if (tooltip) {
-            tooltip.dispose();
-        }
-    },
-  });
+      const tooltip = Tooltip.getInstance(el);
+      if(tooltip) {
+        tooltip.dispose();
+      }
+    }
+  }),
 
 app.use(router).mount("#app");
