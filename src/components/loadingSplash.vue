@@ -1,6 +1,6 @@
 <!-- src/components/LoadingSplash.vue -->
 <script setup>
-const props = defineProps({
+defineProps({
   isLoading: {
     type: Boolean,
     default: true,

@@ -290,6 +290,23 @@ a:hover {
   min-width: 120px; /* Ensure day cards have minimum width */
 }
 
+/* Above the sidebar breakpoint the whole week fits, so the scroller and its
+   arrows are not needed. */
+@media (min-width: 1200px) {
+  .forecast-container {
+    padding: 0;
+  }
+
+  .forecast-scroll-container {
+    justify-content: space-between;
+  }
+
+  .forecast-day {
+    min-width: 0;
+    flex: 1 1 0;
+  }
+}
+
 .scroll-arrow {
   z-index: 10;
   width: 30px;

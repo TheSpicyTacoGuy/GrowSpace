@@ -2,6 +2,7 @@
 import { initializeApp } from "firebase/app";
 import { getFirestore } from "firebase/firestore";
 import { getAuth } from "firebase/auth";
+import { isDemoMode } from "@js/config.js";
 
 // Your web app's Firebase configuration
 // For Firebase JS SDK v7.20.0 and later, measurementId is optional
@@ -15,8 +16,12 @@ const firebaseConfig = {
   measurementId: import.meta.env.VITE_FIREBASE_MEASUREMENT_ID,
 };
 
+// Without credentials Vite aliases `firebase/firestore` and `firebase/auth` to
+// the in-memory demo backend in src/js/demo, so the app still runs.
+export { isDemoMode };
+
 // Initialize Firebase
-const app = initializeApp(firebaseConfig);
+const app = isDemoMode ? undefined : initializeApp(firebaseConfig);
 const db = getFirestore(app);
 const auth = getAuth(app);
 

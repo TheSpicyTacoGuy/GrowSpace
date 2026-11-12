@@ -42,12 +42,13 @@
               @error="image1Failed = true"
             />
             <div
-              class="position-absolute bottom-0 start-0 w-100 p-3 bg-gradient"
+              class="position-absolute bottom-0 start-0 w-100 p-3"
               style="
                 background: linear-gradient(
                   180deg,
-                  rgba(0, 0, 0, 0) 0,
-                  rgba(0, 0, 0, 0.5) 100%
+                  rgba(0, 0, 0, 0) 30%,
+                  rgba(0, 0, 0, 0.55) 65%,
+                  rgba(0, 0, 0, 0.82) 100%
                 );
               "
             >
@@ -83,12 +84,13 @@
               @error="image2Failed = true"
             />
             <div
-              class="position-absolute bottom-0 start-0 w-100 p-3 bg-gradient"
+              class="position-absolute bottom-0 start-0 w-100 p-3"
               style="
                 background: linear-gradient(
                   180deg,
-                  rgba(0, 0, 0, 0) 0,
-                  rgba(0, 0, 0, 0.5) 100%
+                  rgba(0, 0, 0, 0) 30%,
+                  rgba(0, 0, 0, 0.55) 65%,
+                  rgba(0, 0, 0, 0.82) 100%
                 );
               "
             >

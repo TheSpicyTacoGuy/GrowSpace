@@ -74,7 +74,7 @@ async function validateAndSaveWeatherLocation() {
       saveWeatherLocation();
       showToast("Weather location saved!", "success");
       return true;
-    } catch (err) {
+    } catch {
       showToast("Error looking up location.", "danger");
       weatherLocation.value.coords = null;
       saveWeatherLocation();

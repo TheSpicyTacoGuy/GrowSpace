@@ -52,7 +52,7 @@ defineOptions({
       <!-- Quick Access Grid -->
       <div class="row g-3 mt-2">
         <!-- Greenhouses Card -->
-        <div class="col-6">
+        <div class="col-6 col-xl-3">
           <router-link to="/dashboard/greenhouses" class="text-decoration-none">
             <div class="card mobile-card h-100 shadow-sm border-0">
               <div class="card-body text-center p-3">
@@ -60,14 +60,14 @@ defineOptions({
                   <i class="bi bi-house-fill text-success fs-3"></i>
                 </div>
                 <h3 class="card-title h6 mb-0">Greenhouses</h3>
-                <div class="small text-muted mt-1">{{ greenhouseCount }}</div>
+                <div class="small text-muted mt-1">{{ greenhouseCount }} saved</div>
               </div>
             </div>
           </router-link>
         </div>
 
         <!-- Plants Card -->
-        <div class="col-6">
+        <div class="col-6 col-xl-3">
           <router-link to="/dashboard/plants" class="text-decoration-none">
             <div class="card mobile-card h-100 shadow-sm border-0">
               <div class="card-body text-center p-3">
@@ -75,14 +75,14 @@ defineOptions({
                   <i class="bi bi-flower2 text-primary fs-3"></i>
                 </div>
                 <h3 class="card-title h6 mb-0">Plants</h3>
-                <div class="small text-muted mt-1">{{ plantCount }}</div>
+                <div class="small text-muted mt-1">{{ plantCount }} tracked</div>
               </div>
             </div>
           </router-link>
         </div>
 
         <!-- Tips Card -->
-        <div class="col-6">
+        <div class="col-6 col-xl-3">
           <router-link to="/dashboard/tips" class="text-decoration-none">
             <div class="card mobile-card h-100 shadow-sm border-0">
               <div class="card-body text-center p-3">
@@ -90,13 +90,14 @@ defineOptions({
                   <i class="bi bi-lightbulb-fill text-warning fs-3"></i>
                 </div>
                 <h3 class="card-title h6 mb-0">Tips</h3>
+                <div class="small text-muted mt-1">Community advice</div>
               </div>
             </div>
           </router-link>
         </div>
 
         <!-- Settings Card -->
-        <div class="col-6">
+        <div class="col-6 col-xl-3">
           <router-link to="/dashboard/settings" class="text-decoration-none">
             <div class="card mobile-card h-100 shadow-sm border-0">
               <div class="card-body text-center p-3">
@@ -104,6 +105,7 @@ defineOptions({
                   <i class="bi bi-gear-fill text-secondary fs-3"></i>
                 </div>
                 <h3 class="card-title h6 mb-0">Settings</h3>
+                <div class="small text-muted mt-1">Account &amp; theme</div>
               </div>
             </div>
           </router-link>

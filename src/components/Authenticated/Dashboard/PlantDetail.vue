@@ -1,6 +1,6 @@
 <script setup>
 import { useRoute, useRouter } from "vue-router";
-import { ref, onMounted } from "vue";
+import { ref, onMounted, computed } from "vue";
 import { showToast } from "/js/toast";
 import IconPencil from "../../icons/IconPencil.vue";
 import { usePlants } from "../../../composables/usePlants";
@@ -24,6 +24,12 @@ const editedPlant = ref({
 });
 const greenhouses = ref([]);
 const validationErrors = ref({});
+
+const greenhouseName = computed(() => {
+  const id = plant.value?.greenhouseId;
+  if (!id) return "";
+  return greenhouses.value.find((greenhouse) => greenhouse.id === id)?.name || "";
+});
 
 // Get plant-related functions from usePlants
 const { getPlantById, recordCareEvent, updatePlantDetails } = usePlants();
@@ -317,12 +323,17 @@ onMounted(() => {
                     ><i class="bi bi-house-door me-2 text-success"></i
                     >Greenhouse</span
                   >
-                  <router-link
-                    :to="`/dashboard/greenhouses/${plant.greenhouseId}`"
-                    class="btn btn-sm btn-outline-primary"
-                  >
-                    <i class="bi bi-arrow-right me-1"></i>View
-                  </router-link>
+                  <span class="d-flex align-items-center gap-2">
+                    <span v-if="greenhouseName" class="fw-semibold">{{
+                      greenhouseName
+                    }}</span>
+                    <router-link
+                      :to="`/dashboard/greenhouses/${plant.greenhouseId}`"
+                      class="btn btn-sm btn-outline-primary"
+                    >
+                      <i class="bi bi-arrow-right me-1"></i>View
+                    </router-link>
+                  </span>
                 </li>
               </ul>
             </div>

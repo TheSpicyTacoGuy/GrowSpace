@@ -22,7 +22,10 @@ const {
   effectContainerRef,
   weatherEffectClass,
   scrollForecast,
+  updateScrollIndicators,
 } = useWeatherCard(props);
+
+const handleScroll = updateScrollIndicators;
 
 const weatherError = computed(() => props.weatherError);
 const locationDisplay = computed(() => {
@@ -182,15 +185,14 @@ const locationDisplay = computed(() => {
               </button>
             </div>
             <div class="text-center mt-2">
-              <button class="btn btn-link text-decoration-none">
-                <a
-                  href="https://open-meteo.com/"
-                  target="_blank"
-                  class="text-decoration-none text-body"
-                >
-                  <i class="bi bi-info-circle me-1"></i>Powered by OpenMateo
-                </a>
-              </button>
+              <a
+                href="https://open-meteo.com/"
+                target="_blank"
+                rel="noopener"
+                class="text-decoration-none text-body"
+              >
+                <i class="bi bi-info-circle me-1"></i>Powered by Open-Meteo
+              </a>
             </div>
           </div>
         </div>

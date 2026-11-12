@@ -67,6 +67,8 @@ export default function useWeatherCard(props) {
 
   const scrollForecast = (direction) => {
     const forecastContainer = document.querySelector(".forecast-scroll-container");
+    if (!forecastContainer) return;
+
     const scrollAmount = direction === "left" ? -120 : 120;
     forecastContainer.scrollBy({ left: scrollAmount, behavior: "smooth" });
     updateScrollIndicators();

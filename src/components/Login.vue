@@ -65,13 +65,10 @@
         </button>
         <!-- Or HR -->
         <!-- The email and password sign in is for marking and not for the final version.-->
-        <div class="text-center mb-3">
+        <div v-if="isDemoMode" class="text-center mb-3">
           <p class="text-muted">
-            Please use the above inputs for marking so you don't have to use
-            Google or Facebook. <br /><b>email:</b> test@test.com <br /><b
-              >pass:</b
-            >
-            Password1@
+            Demo build — the sample account is already signed in and any email
+            and password will get you into the dashboard.
           </p>
         </div>
         <div class="d-flex align-items-center mb-4">
@@ -126,6 +123,7 @@ import {
   loginWithFacebook,
   loginWithEmailPassword,
 } from "@js/auth/authFunctions.js";
+import { isDemoMode } from "@js/config.js";
 
 defineOptions({
   name: "LoginForm",
